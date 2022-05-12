@@ -1,0 +1,34 @@
+\begin{tikzpicture}
+  [junction/.style={fill=KITblack!5},
+   point/.style={draw, circle, inner sep=0pt, minimum size=1ex},
+   entry/.style={point, fill=black},
+   exit/.style={point, fill=white},
+   edge/.style={>=stealth, ->, shorten >=1pt, shorten <=1pt},
+   original edge/.style={edge, draw=black},
+   turn edge/.style={edge, draw=KITgreen},
+   every label/.append style={circle},
+   scale=1.125,
+   rotate=22.5]
+
+  \def\Radius{2ex}
+
+  \begin{scope}[rotate=90]
+    \draw [junction] circle [radius=\Radius];
+    \node [entry, label={[anchor=22.5]180 + 22.5:$j$}] (j) at (45:\Radius) {};
+    \node [exit, label={[anchor=180 + 22.5]22.5:$k$}] (k) at (-45:\Radius) {};
+    \path (j) edge [turn edge, bend right=45, looseness=2] (k);
+    \node at (-1ex,0) {$v$};
+  \end{scope}
+
+  \node [exit, label={[anchor=90 + 22.5]-90 + 22.5:$i$}] (i) at (135:5 * \Radius) {};
+  \node [entry, label={[anchor=90 + 22.5]-90 + 22.5:$l$}] (l) at (45:5 * \Radius) {};
+
+  \path (i) edge [original edge] (l);
+  \path (i) edge [original edge] (j);
+  \path (k) edge [original edge] (l);
+
+  \begin{scope}[on background layer]
+    \draw (i) +(180 - 22.5:\Radius) [junction] circle [radius=\Radius] node {$u$};
+    \draw (l) +(      22.5:\Radius) [junction] circle [radius=\Radius] node {$w$};
+  \end{scope}
+\end{tikzpicture}
