@@ -1,6 +1,7 @@
-\documentclass[a4paper, english, cleveref]{oasics-v2019}
+\documentclass[a4paper, english, cleveref]{lipics-v2021}
 \usepackage{booktabs}
 \usepackage{KITcolors}
+\usepackage[algo2e,vlined]{algorithm2e}
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning,decorations,decorations.pathmorphing}
 
@@ -10,6 +11,12 @@
     \global\let\myangle\pgfmathresult % we need a global macro
 }
 
+\newcommand*{\elimtree}{\mathtt{T}}
+\newcommand*{\gchu}{G^{\uparrow}}
+\newcommand*{\gchd}{\overleftarrow{G^{\downarrow}}}
+\newcommand*{\echu}{E^{\uparrow}}
+\newcommand*{\rechd}{\overleftarrow{E^{\downarrow}}}
+\newcommand*{\echd}{E^{\downarrow}}
 
 \bibliographystyle{plainurl}
 \usetikzlibrary{backgrounds}
@@ -68,11 +75,12 @@ Turns can be encoded into the network structure by expanding the network so that
 
 The contribution of this work is twofold. First, we propose several optimizations that accelerate CCH on the edge-based model by exploiting properties of the expanded network (\Cref{sec:cch-on-edge-based-model}). We reduce the increase in customization time from up to an order of magnitude to a factor of about three (which is reasonable since the expanded network is three times larger than the original network, which ignores turn costs). The increase in preprocessing time is reduced even further.
 
-Second, we introduce a CCH variant that works on the compact model, and discuss various issues we found (\Cref{sec:cch-on-compact-model}). An extensive experimental evaluation shows that the edge-based variant significantly outperforms the compact variant (\Cref{sec:experiments}). Surprisingly, the variant on the edge-based model even uses less space than the one on the compact model.
+Second, we introduce a CCH variant that works on the compact model, and discuss various issues we found. An extensive experimental evaluation shows that the edge-based variant significantly outperforms the compact variant (\Cref{sec:experiments}). Surprisingly, the variant on the edge-based model even uses less space than the one on the compact model.
 
 \subparagraph*{Outline}
 
-\Cref{sec:preliminaries} formally defines the problem we solve and has background information. \Cref{sec:cch-on-edge-based-model} presents optimizations that accelerate CCH on the edge-based model. \Cref{sec:cch-on-compact-model} introduces a CCH variant that works on the compact model. \Cref{sec:experiments} presents an extensive experimental evaluation of both variants. \Cref{sec:conclusion} concludes with final remarks.
+\Cref{sec:preliminaries} formally defines the problem we solve and has background information. \Cref{sec:cch-on-edge-based-model} presents optimizations that accelerate CCH on the edge-based model.
+Blub introduces a CCH variant that works on the compact model. \Cref{sec:experiments} presents an extensive experimental evaluation of both variants. \Cref{sec:conclusion} concludes with final remarks.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -140,11 +148,152 @@ The query phase runs a bidirectional version of the turn-aware Dijkstra describe
 
 \subsection{Customizable Contraction Hierarchies}
 
-\emph{Customizable contraction hierarchies} (CCH)~\cite{DibbeltSW16} are a three-phase technique, splitting CH preprocessing into a relatively slow metric-independent phase and a much faster customization phase. The metric-independent phase computes a \emph{separator decomposition}~\cite{BauerCRW16} of the unweighted graph, determines an associated \emph{nested dissection order}~\cite{George73} on the vertices, and contracts them in this order without running witness searches (which depend on the metric). Therefore, it adds every potential shortcut. The customization phase computes the costs of the edges in the hierarchy by processing them in bottom-up fashion. To process an edge~$(u, w)$, it enumerates all triangles~$\{v, u, w\}$ where $v$ has lower rank than $u$ and $w$, and checks if the path $\langle u, v, w \rangle$ improves the cost of $(u, w)$. Alternatively, Buchhold et al.~\cite{BuchholdSW19} enumerate all triangles~$\{u, w, v'\}$ where $v'$ has higher rank than $u$ and $w$, and check if the path $\langle v', u, w \rangle$ improves the cost of $(v', w)$, accelerating customization by a factor of 2.
+\emph{Customizable contraction hierarchies} (CCH)~\cite{DibbeltSW16} are a three-phase technique, splitting CH preprocessing into a relatively slow metric-independent phase and a much faster customization phase.
+The metric-independent phase computes a \emph{separator decomposition}~\cite{BauerCRW16} of the unweighted graph, determines an associated \emph{nested dissection order}~\cite{George73} on the vertices, and contracts them in this order without running witness searches (which depend on the metric).
+Therefore, it adds every potential shortcut.
+The customization phase computes the costs of the edges in the hierarchy by processing them in bottom-up fashion.
+To process an edge~$(u, w)$, it enumerates all triangles~$\{v, u, w\}$ where $v$ has lower rank than $u$ and $w$, and checks if the path $\langle u, v, w \rangle$ improves the cost of $(u, w)$. Alternatively, Buchhold et al.~\cite{BuchholdSW19} enumerate all triangles~$\{u, w, v'\}$ where $v'$ has higher rank than $u$ and $w$, and check if the path $\langle v', u, w \rangle$ improves the cost of $(v', w)$, accelerating customization by a factor of 2.
 
-There are two known query algorithms. First, one can run a standard CH search without modification. In addition, Dibbelt et al.~\cite{DibbeltSW16} describe a query algorithm based on the \emph{elimination tree} of the augmented graph. The parent of a vertex in the elimination tree is its lowest-ranked higher neighbor in the augmented graph. Bauer et al.~\cite{BauerCRW16} prove that the ancestors of a vertex~$v$ in the elimination tree are exactly the set of vertices in the CH search space of $v$. Hence, the elimination tree query algorithm explores the search space by traversing a path in the elimination tree, thereby avoiding a priority queue completely. Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimination tree search, which achieve significant speedups for short- and mid-range queries.
+There are two known query algorithms.
+First, one can run a standard CH search without modification.
+In addition, Dibbelt et al.~\cite{DibbeltSW16} describe a query algorithm based on the \emph{elimination tree} of the augmented graph.
+The parent of a vertex in the elimination tree is its lowest-ranked higher neighbor in the augmented graph.
+Bauer et al.~\cite{BauerCRW16} prove that the ancestors of a vertex~$v$ in the elimination tree are exactly the set of vertices in the CH search space of $v$.
+Hence, the elimination tree query algorithm explores the search space by traversing a path in the elimination tree, thereby avoiding a priority queue completely.
+Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimination tree search, which achieve significant speedups for short- and mid-range queries.
 
-\section{CCH on the Edge-based Model}
+\section{Algorithms}
+\subsection{Metric-Independent Preprocessing}
+\subsubsection{Ordering}
+\subsubsection{Contraction}
+
+% undirected/bidirected
+Once an importance ordering was obtained, the remaining part of the metric-independent preprocessing is to compute the topology of the augmented graph $G^+=(V, E^+)$.
+This graph must contain \emph{every} shortcut edge which might be relevant for \emph{any} weight function.
+Thus, the simplest way to construct this graph is to perform the classical CH preprocessing for the given order without any witness search, i.e.\ iterate over all vertices by ascending rank and ensure that a shortcut edge exists between any pair of upward neighbors of each vertex.
+The result of this process is the minimal chordal supergraph of $G$ for which the importance ordering is a perfect elimination scheme.
+Because the naive approach is rather expensive in terms of running time, the authors of~\cite{DibbeltSW16} propose a faster algorithm based on a quotient graph~\cite{TODO}.
+However, this algorithm is rather complex.
+Here, we describe a simpler and even faster algorithm, which so far has only been described in a Bachelor's thesis~\cite{TODO}.
+It is heavily based on the linear time chordal graph recognition algorithm of~\cite{TODO}.
+
+The algorithm iterates over all vertices by ascending rank.
+Let $v$ be the current vertex and $N^+(v)$ its upward neighborhood.
+If this neighborhood is non-empty, the algorithm obtains the upward neighbor $u$ with minimal rank.
+The remaining neighborhood $N^+(v) \setminus u$ of $v$ is merged into the neighborhood of $u$, i.e.\ $N^+(u) \gets N^+(u) \cup N^+(v) \setminus u$.
+The result is the minimal chordal supergraph of $G$ induced by the nested dissection order.
+
+This algorithm can be implemented by maintaining the neighborhood of each vertex in a dynamic array.
+A theoretical worst-case running time of $\mathcal{O}(|V| + |E^+|)$ can be achieved by appending the neighborhoods without checking for duplicates and only performing the deduplication when extracting the minimally ranked upward neighbor.
+See~\cite{TODO} for a proof of the running time and the correctness.
+However, for a practical implementation, it is even more efficient to ensure that the neighborhoods never contain any duplicates and are always sorted by rank.
+Merging neighborhoods can then be realized with a coordinated linear sweep.
+The worst-case running time of this variant is slightly worse, but in practice, running times are faster.
+% bad worst-case running time: clique with x additional vertices connected to lowest and highest ranked clique vertex
+
+% elimination tree
+
+\subsubsection{Reconstructing Separator Decompositions}
+
+CCH vertex importance orderings are based on a separator decomposition of the input network.
+This decomposition is very useful for several CCH algorithms, for example for the parallelization of the customization or k-nearest-neighbor queries.
+However, some blackbox partitioners such as FlowCutter or InertialFlowCutter will only return the vertex order and not the separator decomposition.
+Luckily, we can reconstruct a decomposition from the elimination tree.
+
+% forest?
+Consider the highest ranked vertex $v$ with more than one child in the elimination tree.
+Thus, the path from $v$ to the elimination tree root is a chain of vertices with exactly one child.
+The vertices of that path are the top-level separator.
+Removing these vertices from the original graph leaves two or more disconnected cells.
+Each cell contains the vertices of a subtree where the root is a child of $v$.
+This follows from the construction of the elimination tree and the augmented graph:
+
+Clearly, all vertices in the subtress have lower rank than $v$.
+Suppose for contradiction there is an edge between vertices $u$ and $w$ from different subtrees $T_u$ and $T_w$.
+Without loss of generality, we assume $u < w$.
+Because $u$ and $w$ are in distinct subtrees, we know $\mathtt{T}[u] \neq w$ and thus $\mathtt{T}[u] < w$.
+Otherwise $\mathtt{T}[u]$ would not be $u$'s lowest ranked upward neighbor.
+However, due to the construction of the augmented graph, the edge $(\mathtt{T}[u], w)$ must exist, too.
+This holds inductively for every vertex on the path in the elimination tree from $u$ to $v$.
+However, since $w < v$, one of the vertices on this path would have had to have $w$ as its lowest ranked upward neighbor and parent in the elimination tree.
+This is a contradiction.
+
+It follows that we can obtain the top-level separator of a cell as the path from the highest ranked vertex with more than one child to the root of the cells elimination subtree.
+Applying this idea recursively yields the whole separator decomposition.
+
+% not necessarily  what partitioner found
+
+\subsection{Customization}
+
+In the customization phase, a weight function $\ell$ is given and the corresponding weight function for the augmented graph $\ell^+$ is computed.
+There are four steps to this phase:
+\begin{enumerate}
+  \item In the \emph{respecting} step, $\ell^+$ is initialized and for every edge set to the corresponding weight in $\ell$, or to $\infty$ if no such edge exists.
+  \item The \emph{basic customization} step is the most important part and computes the remaining $\ell^+$ weight such that queries can be answered correctly.
+        For this all edges $uv$ are processed in a bottom-up fashion, i.e.\ by ascending rank of the endpoints.
+        For each edge, lower triangles $(u,w,v)$ (where $w < u$ and $w < v$) are enumerated and relaxed, i.e.\ the weight of $uv$ (or $uw$, respectively) is decreased to the length of the path over $w$ if it is shorter.
+        Now, every edge has the weight of the shortest path between its endpoints using only lower ranked vertices.
+        This is sufficient for correctness but some edges have a greater weight than necessary and are actually unnecessary.
+  \item In the \emph{perfect customization} edges are processed again but in a top-down fashion while relaxing upper and intermediate triangles.
+        This results in every edge in the augmented graph having the weight of the shortest distance between its endpoints.
+  \item Finally, in the \emph{construction step}, a reduced augmented graph is constructed by removing all edges where the weight was improved during the perfect customization.
+
+\end{enumerate}
+The first two steps are mandatory.
+Steps three and four only help to accelerate queries.
+
+We now focus on the basic customization.
+The basic schema still leaves open quite a few important details.
+In theory, any edge iteration order, which can guarantee that the two lower edges of each triangle are final before the top edge is processed, is sufficient.
+In practice, the easiest and most useful way is to iterate over all vertices $u$ by ascending rank and than process all outgoing edges $uv$ with $u < v$.
+Also, the way triangles are enumerated is critical for the performance.
+The original CCH publication suggests to enumerate lower triangles of an edge $uv$ by performing a coordinated linear sweep over the incoming edges $uw \in \echd$ of $u$ and $vw \in \echd$ of $v$.
+Buchhold et al. noticed that enumerating upper triangles is faster than enumerating lower triangles and suggest an improved basic customization algorithm.
+The algorithm also iterates over all edges $uv$ ordered by the lower-ranked endpoint.
+However, for each edge now the upper triangles $(u,w,v)$ where $w>u$ and $w>v$ are enumerated.
+Now, the weights of $wv$ and $vw$ are relaxed with the length of the path over $u$.
+
+\subsubsection{Faster Triangle Enumeration}
+
+We accelerate the triangle enumeration by introducing an additional array $\mathtt{W}$ of size $n$.
+The entry $\mathtt{W}[v]$ will temporarily store the weight of an edge $uv$ for different vertices $u$ throughout the customization.
+This allows us to avoid any coordinated sweeps and instead iterate over the edges of two vertices of a triangle and access the weight of the third edge directly in $\mathcal{O}(1)$.
+
+\begin{algorithm2e}
+% \KwData{$\mathtt{D}^{\downarrow}[u]$: tentative distance from $u$ to $t$ computed by Dijkstra's algorithm on $\gchd$}
+% \KwData{$\mathtt{D}[u]$: memoized final distance from $u$ to $t$, initially $\bot$}
+\SetKwFunction{Basic}{CustomizeBasic}
+\SetKwProg{Fn}{Function}{:}{}
+\Fn{\Basic}{
+  \For{all vertices $u \in V$ ordered by ascending rank}{
+    \For{all edges $uv \in \echu$}{
+      $\mathtt{W}[v] \gets \ell^+(uv)$\;
+    }
+    \For{all edges $uw \in \echd$}{
+      \For{all edges $wv \in \echu$}{
+        $\mathtt{W}[v] \gets \min(\mathtt{W}[v], \ell^+(uw) + \ell^+(wv))$\;
+      }
+    }
+    \For{all edges $uv \in \echu$}{
+      $\ell^+(uv) \gets \mathtt{W}[v]$\;
+    }
+  }
+}
+\caption{TODO.}
+\label{algo:faster_customization}
+\end{algorithm2e}
+
+\subsubsection{Separator-Based Parallelization}
+\subsubsection{Parallelized Reduced Graph Construction}
+
+\subsection{Queries}
+
+\section{Extended Problems}
+\subsection{Lazy RPHAST}
+\subsection{Alternative}
+\subsection{kNN}
+\subsection{Turns}
+% \subsection{CCH on the Edge-based Model}
 \label{sec:cch-on-edge-based-model}
 
 CCH can be applied to the edge-based model without modifications.
@@ -271,56 +420,6 @@ As shortcuts get the weight of the shortest path through lower ranked vertices, 
   \end{tikzpicture}
   \caption{On the left is a visualization of a cut in~$G$. In the middle is an arbitrary contraction order which results in no infinite edges after the first four contractions. On the right, the edges in the order are grouped which results in three infinite edges after the first four contractions (shown by the dotted edges). \label{fig:reorder_cut}}
 \end{figure}
-
-\section{CCH on the Compact Model}
-\label{sec:cch-on-compact-model}
-
-Recall that all CCH phases do not work on the original directed graph~$G = (V, E)$, but on the corresponding bidirected graph~$G' = (V, E')$ that is obtained from $G$ by adding all edges~$\{(w, v): (v, w) \in E, (w, v) \notin E\}$. The cost of each edge in $E' \setminus E$ is $\infty$, and thus the distance between any two vertices is the same in $G$ and $G'$. Since most graph-theoretical results for undirected graphs carry over to bidirected graphs, CCH can use algorithmic tools for undirected graphs. In particular, CCH preprocessing exploits quotient graphs and CCH queries exploit elimination trees, which are both concepts for undirected graphs.
-
-The compact model, however, is inherently directed. We cannot make a compact graph bidirected, since this would add edges that exit vertices at entry points and enter them at exit points. Therefore, in the compact model, all CCH phases have to work on the original (not necessarily bidirected) graph. This has undesirable consequences. First, we cannot use the efficient CCH preprocessing algorithm based on quotient graphs. Second, we have to use Dijkstra-based queries, since the faster elimination tree queries are also not applicable.
-
-There is one additional issue. Recall that in the compact model, we generally cannot avoid self-loops and parallel edges and that each shortcut is no longer built from exactly two edges, but can also include one or more self-loops at the middle vertex. Standard CH (on the compact model) deals with this by using the witness searches to determine shortcut costs.
-
-During CCH customization, however, there is no notion of graph searches at all. We enumerate triangles and perform one basic operation for each triangle: adding up the costs of two edges to update the cost of the third edge. Hence, to determine the cost of a shortcut~$s$ containing self-loops, we must insert \emph{phantom shortcuts}. These are used during customization to incrementally compute the cost of $s$ by repeatedly combining two of its constituent edges.
-
-\subparagraph*{Preprocessing}
-
-Given a nested dissection order on the vertices, we contract them in this order. When contracting a vertex~$v$, we have to add a shortcut between each exit point~$u|i$ with $u \ne v$ and $(u|i, v) \in E$ and each entry point~$w|l$ with $w \ne v$ and $(v, w|l) \in E$. In addition, as already mentioned, we must add phantom shortcuts, so that the customization phase is able to compute the costs of shortcuts built from more than two edges incrementally.
-
-Our approach is as follows. To contract a vertex~$v$, we pick an order on the turns at $v$ and contract them in this order. Consider a turn~$(j, k)$ at $v$. For each edge~$(u|i, v|j)$ entering $v$ at entry point~$j$ and each edge~$(v|k, w|l)$ leaving $v$ at exit point~$k$, we add a shortcut~$(u|i, w|l)$. Note that these shortcuts are concatenations of two edges, and thus their costs can be customized. If $u = v$ or $w = v$, then the shortcut is a phantom shortcut.
-
-Note that this approach adds shortcuts that are not necessary. A shortcut~$(u|i, w|l)$ is superfluous if $u = v$ and all turns entering exit point~$i$ are already contracted, or $w = v$ and all turns leaving entry point~$l$ are already contracted. To decide whether a shortcut is necessary, we maintain the number~$t(\cdot)$ of uncontracted turns that enter or leave each exit or entry point of $v$, respectively. Whenever we contract a turn~$(j, k)$, we decrement both $t(j)$ and $t(k)$. A shortcut $(u|i, w|l)$ is only inserted if $u \ne v$ or $t(i) \ne 0$, and $w \ne v$ or $t(l) \ne 0$. \Cref{fig:phantom-shortcuts} illustrates the creation of phantom shortcuts.
-
-\begin{figure}[tb]
-  \hfill
-  \input{Graphics/PhantomShortcuts1}\hfill
-  \input{Graphics/PhantomShortcuts2}\hfill\hspace{0pt}
-  \caption{Creation of phantom shortcuts. We are about to contract the vertex in the center. Its lower-ranked neighbors (light-colored) are already contracted. Original edges are shown in black, turn edges are shown in green, and shortcut edges are shown in blue. Left: The vertex to be contracted and its neighbors before the contraction. The order on the turns is given by the numbers. Right: The shortcuts added while contracting the turns. Phantom shortcuts are drawn dotted.}
-  \label{fig:phantom-shortcuts}
-\end{figure}
-
-Different turn orders can lead to slightly different numbers of phantom shortcuts. We thus tested some turn orders on various benchmark instances, however, the impact on the performance of all phases was limited. Therefore, any turn order that is easy to implement can be picked, in particular, the order in which the turns are stored in memory.
-
-\subparagraph*{Customization}
-
-We recontract each turn, this time determining shortcut costs. Since we have the CCH topology in place, all we need to do to recontract a turn is to enumerate all triangles spanned by this turn and perform one minimum operation for each triangle. Consider a turn~$(j, k)$ at a vertex~$v$ and a triangle consisting of three edges~$(u|i, v|j)$, $(v|k, w|l)$ and $(u|i, w|l)$; see \cref{fig:triangle}. We call $(u|i, w|l)$ the \emph{shortcut edge} and the other the \emph{supporting edges} of the triangle. Also, we say that the turn \emph{spans} the triangle.
-
-We recontract the vertices in the given nested dissection order, and within each vertex, we recontract the turns in the same order as during preprocessing. If we pick the order in which the turns are stored in memory, we do not have to store the turn order for each vertex explicitly. For each turn at a vertex~$v$, we enumerate the triangles spanned by the turn where $v$ is the lowest-ranked vertex, and for each triangle, we add the costs of the two supporting edges and the turn between them, and update the cost of the shortcut edge if needed.
-
-We now show how to efficiently enumerate all triangles spanned by a turn~$(j, k)$ where the shortcut edge does not point downwards. The other case is symmetric. We maintain a $|V| \times \Delta$~array~$W$, where $\Delta$ is the maximum indegree of the original graph. All values in the array are initialized to $\infty$. First, we loop over all non-downward edges~$e_2 = (v|k, w|l)$ leaving $v$ at $k$ and set $W[w, l] = T_v(j, k) + \ell(e_2)$. Then, we loop through all non-downward edges~$e_1 = (u|i, v|j)$ entering $v$ at $j$. For each such $e_1$, we loop through all non-downward edges $e = (u|i, w'|l')$ leaving $u$ at $i$. If $\ell(e_1) + W[w', l'] < \ell(e)$, then we set $\ell(e) = \ell(e_1) + W[w', l']$. Finally, we loop over all edges~$e_2$ again and reset $W[w, l]$ to $\infty$.
-
-Interestingly, a nonturn version of this customization algorithm outperforms the original customization by Dibbelt et al.~\cite{DibbeltSW16} by a factor of four, and is twice as fast as the engineered customization by Buchhold et al.~\cite{BuchholdSW19}. The drawback is the increase in space consumption.
-
-\begin{figure}[tb]
-  \centering
-  \input{Graphics/Triangle}
-  \caption{A triangle spanned by the turn~$(j, k)$ at $v$. Note that $(u|i, w|l)$ is the shortcut edge, and $(u|i, v|j)$ and $(v|k, w|l)$ are the supporting edges of the triangle.}
-  \label{fig:triangle}
-\end{figure}
-
-\subparagraph*{Queries}
-
-Dijkstra-based queries work as in standard CH on the compact model, however, they do not need to follow phantom shortcuts. Elimination tree queries are not applicable, since elimination trees are defined only for undirected graphs (and their bidirected counterparts).
 
 \section{Experiments}
 \label{sec:experiments}
@@ -512,21 +611,6 @@ Thus, for undirected hierarchies, the number of relaxation operations is twice t
 It is noteworthy that even though our optimizations primarily aim for the customization running time, we also achieve a significant speedup for query running times.
 The removal of infinite edges also reduces the number of edges in the query search space.
 
-\subparagraph{Compact Model}
-We also evaluate the performance of CCH with the compact model.
-The implementation is considerable more complex than our optimizations for the edge-based model and sadly does not deliver competitive performance.
-As we cannot use the efficient quotient graph based contraction routine, preprocessing slows down by an order of magnitude as previously observed in~\cite{DibbeltSW16}.
-For the Europe instance, the augmented graphs in the compact model and in the edge-based model contain a similar number of edges.
-The number of triangles, however, increases by a factor of 43.
-This leads to a slowdown of the customization by a factor of 34.
-Queries are even worse.
-The running time increases by a factor of 53.
-The reason for this slowdown are vertices with high degrees (several thousand edges) in high-level separators.
-This happens because we get shortcuts between almost all pairs of entry and exit nodes of separator vertices.
-When an entry node is popped from the queue, all outgoing edges of that vertex are relaxed.
-This leads to a tremendous amount of edge relaxations and the observed slowdown.
-On Stuttgart and London, the slowdowns are around factor 20.
-
 \subparagraph{Comparison with related work}
 
 \begin{table}
@@ -551,9 +635,8 @@ For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 \addlinespace
 CRP                       & \cite{DellingGPW17}                  &                  654 &              10.55 &                       1.65 &    Compact &     654 &   11.12 &       1.67 \\
 \addlinespace
-\multirow{3}{*}{CCH}      &                                      & \multirow{3}{*}{182} & \multirow{3}{*}{2.35} &   \multirow{3}{*}{0.19} & Edge-based &  2\,321 &   14.79 &       0.52 \\
+\multirow{2}{*}{CCH}      &                                      & \multirow{2}{*}{182} & \multirow{2}{*}{2.35} &   \multirow{2}{*}{0.19} & Edge-based &  2\,321 &   14.79 &       0.52 \\
                           &                                      &                      &                    &                            & Edge-based* &    256 &    8.18 &       0.31 \\
-                          &                                      &                      &                    &                            &    Compact &  2\,542 &  281.56 &      16.51 \\
 \bottomrule
 \end{tabular}
 \end{table}
