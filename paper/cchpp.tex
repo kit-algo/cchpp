@@ -13,7 +13,8 @@
 
 \newcommand*{\elimtree}{\mathtt{T}}
 \newcommand*{\gchu}{G^{\uparrow}}
-\newcommand*{\gchd}{\overleftarrow{G^{\downarrow}}}
+\newcommand*{\gchd}{G^{\downarrow}}
+\newcommand*{\rgchd}{\overleftarrow{G^{\downarrow}}}
 \newcommand*{\echu}{E^{\uparrow}}
 \newcommand*{\rechd}{\overleftarrow{E^{\downarrow}}}
 \newcommand*{\echd}{E^{\downarrow}}
@@ -62,6 +63,11 @@
 \end{abstract}
 
 \section{Introduction}
+
+In this chapter we do not propose a new technique for dynamic routing.
+% CRP practical
+% combine incremental contributions to build full routing framework
+Rather, we review and improve on recent advances for Customizable Contraction Hierarchies and show how to bring them all together to build a fully-fledged practical routing framework.
 
 Motivated by computing driving directions, the last two decades have seen intense research on speedup techniques~\cite{BastDGMPSWW16} for Dijkstra's shortest-path algorithm~\cite{Dijkstra59}, which rely on a slow preprocessing phase to enable fast queries. Almost all previous experimental studies (e.g., \cite{GoldbergH05, HilgerKMS09, Lauther09, DibbeltSW16, Gutman04, AbrahamDGW11, ArzLS13, BastFSS07}) are restricted to the simplified model, where vertices represent intersections, edges represent road segments, and turn costs are ignored. While it has been widely believed that turn restrictions and turn costs are easy to incorporate, Delling et al.~\cite{DellingGPW17} show that most algorithms have a significant performance penalty. For long-range queries, one may argue that turn costs are negligible. When analyzing intracity traffic~\cite{BuchholdSW19, SchneckN20} or dispatching autonomous vehicles operating within a particular city~\cite{BischoffM16, BischoffMN17}, however, taking turn costs into account is of utmost importance.
 
@@ -164,10 +170,12 @@ Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimin
 
 \section{Algorithms}
 \subsection{Metric-Independent Preprocessing}
+
+% undirected/bidirected
+
 \subsubsection{Ordering}
 \subsubsection{Contraction}
 
-% undirected/bidirected
 Once an importance ordering was obtained, the remaining part of the metric-independent preprocessing is to compute the topology of the augmented graph $G^+=(V, E^+)$.
 This graph must contain \emph{every} shortcut edge which might be relevant for \emph{any} weight function.
 Thus, the simplest way to construct this graph is to perform the classical CH preprocessing for the given order without any witness search, i.e.\ iterate over all vertices by ascending rank and ensure that a shortcut edge exists between any pair of upward neighbors of each vertex.
@@ -225,6 +233,8 @@ Applying this idea recursively yields the whole separator decomposition.
 
 \subsection{Customization}
 
+directed
+
 In the customization phase, a weight function $\ell$ is given and the corresponding weight function for the augmented graph $\ell^+$ is computed.
 There are four steps to this phase:
 \begin{enumerate}
@@ -253,38 +263,127 @@ The algorithm also iterates over all edges $uv$ ordered by the lower-ranked endp
 However, for each edge now the upper triangles $(u,w,v)$ where $w>u$ and $w>v$ are enumerated.
 Now, the weights of $wv$ and $vw$ are relaxed with the length of the path over $u$.
 
-\subsubsection{Faster Triangle Enumeration}
+\[
+\sum_{v \in V}( \deg_{\gchu}(v)\deg_{\gchd}(v) + \deg_{\gchd}(v)^2 )
+\]
 
-We accelerate the triangle enumeration by introducing an additional array $\mathtt{W}$ of size $n$.
-The entry $\mathtt{W}[v]$ will temporarily store the weight of an edge $uv$ for different vertices $u$ throughout the customization.
-This allows us to avoid any coordinated sweeps and instead iterate over the edges of two vertices of a triangle and access the weight of the third edge directly in $\mathcal{O}(1)$.
+\[
+\sum_{v \in V}( \deg_{\gchu}(v)\deg_{\gchd}(v) + \deg_{\gchu}(v)^2 )
+\]
+
+\subsubsection{Batched Triangle Relaxation}
+
+We accelerate the triangle enumeration by introducing an additional array $\mathtt{ID}$ of size $n$.
+The entry $\mathtt{ID}[v]$ will temporarily store the weight of an edge $uv$ for different vertices $u$ throughout the customization. % TODO
+This allows us to replace the coordinated sweeps with a simple iteration over neighbors and a direct access of the weight of the third edge.
+
+% batched triangle enumeration?
 
 \begin{algorithm2e}
-% \KwData{$\mathtt{D}^{\downarrow}[u]$: tentative distance from $u$ to $t$ computed by Dijkstra's algorithm on $\gchd$}
-% \KwData{$\mathtt{D}[u]$: memoized final distance from $u$ to $t$, initially $\bot$}
-\SetKwFunction{Basic}{CustomizeBasic}
+\KwData{$\ell^+(uv)$: length of $uv$ in the augmented graph.}
+\KwData{$\mathtt{ID}[v]$: edge ID of $uv$ where $u$ is the current vertex in the outer loop, initially $\bot$.}
+\SetKw{Break}{break}
+\SetKwFunction{Basic}{BasicCustomization}
 \SetKwProg{Fn}{Function}{:}{}
 \Fn{\Basic}{
   \For{all vertices $u \in V$ ordered by ascending rank}{
     \For{all edges $uv \in \echu$}{
-      $\mathtt{W}[v] \gets \ell^+(uv)$\;
+      $\mathtt{ID}[v] \gets uv$\;
     }
     \For{all edges $uw \in \echd$}{
-      \For{all edges $wv \in \echu$}{
-        $\mathtt{W}[v] \gets \min(\mathtt{W}[v], \ell^+(uw) + \ell^+(wv))$\;
+      \For{all edges $wv \in \echu$ ordered descending by rank of $v$}{
+        \If{$v <= u$}{
+          \Break\;
+        }
+        \If{$\mathtt{ID}[v] \neq \bot$}{
+          $\ell^+(\mathtt{ID}[v]) \gets \min(\ell^+(\mathtt{ID}[v]), \ell^+(uw) + \ell^+(wv))$\;
+        }
       }
     }
     \For{all edges $uv \in \echu$}{
-      $\ell^+(uv) \gets \mathtt{W}[v]$\;
+      $\mathtt{ID}[v] \gets \bot$\;
     }
   }
 }
-\caption{TODO.}
-\label{algo:faster_customization}
+\caption{Basic customization algorithm with batched triangle relaxing.}
+\label{algo:basic_customization}
 \end{algorithm2e}
 
-\subsubsection{Separator-Based Parallelization}
+Impl Details
+- Directed Weights
+- Mapping from $\echd$ id to actual edge id
+- Unpacking data
+- need $\echd$
+
+Basic
+\[
+\sum_{v \in V} (\deg_{\gchu}(v)^2 + 2 \cdot \deg_{\gchu}(v))
+\]
+
+\begin{algorithm2e}
+\KwData{$\ell^*(uv)$: length of $uv$ in the augmented graph, initialized to $\ell^*(uv)$.}
+\KwData{$\mathtt{ID}[v]$: edge ID of $uv$ where $u$ is the current vertex in the outer loop, initially $\bot$.}
+\SetKwFunction{Perfect}{PerfectCustomization}
+\SetKwProg{Fn}{Function}{:}{}
+\Fn{\Perfect}{
+  \For{all vertices $u \in V$ ordered by descending rank}{
+    \For{all edges $uv \in \echu$}{
+      $\mathtt{ID}[v] \gets uv$\;
+    }
+    \For{all edges $uw \in \echu$}{
+      \For{all edges $wv \in \echu$}{
+        \If{$\mathtt{ID}[v] \neq \bot$}{
+          $\ell^*(uw) \gets \min(\ell^*(uw), \ell^*(wv) + \ell^*(\mathtt{ID}[v]))$\;
+          $\ell^*(\mathtt{ID}[v]) \gets \min(\ell^*(\mathtt{ID}[v]), \ell^*(uw) + \ell^*(wv))$\;
+        }
+      }
+    }
+    \For{all edges $uv \in \echu$}{
+      $\mathtt{ID}[v] \gets \bot$\;
+    }
+  }
+}
+\caption{Perfect customization algorithm with batched triangle relaxing.}
+\label{algo:perfect_customization}
+\end{algorithm2e}
+
+% track modified
+% no modification of unpacking
+
+Perfect
+\[
+\sum_{v \in V} (\deg_{\gchu}(v)\deg_{\gchd}(v) + 2 \cdot \deg_{\gchu}(v))
+\]
+
+\subsubsection{Parallelization}
+
+% TODO introduce level
+The original CCH publication proposed to parallelize both the basic and perfect customization with a simple loop-based approach by processing edges on the same level in parallel, as they are independent\footnote{
+This is only obvious for the basic customization.
+However, for the perfect customization, the authors of~\cite{DibbeltSW16} proved that the algorithm is correct, too, as long as weight updates (but not comparisons) happen atomically.
+} from each other.
+Unfortunately, this approach requires a synchronization step after the completion of each level.
+This is detrimental to load balancing.
+Buchhold et al.~\cite{BuchholdSW19} introduced a task-based parallelization approach utilizing the separator decomposition.
+Each task is responsible for a subgraph $G'$.
+Removing the top-level separator in $G'$ decomposes the subgraph into two or more disconnected components.
+For each component, a new task is spawned.
+If the size of subgraph $G'$ is below a certain threshold, the task completely processes $G'$ sequentially without spawning subtasks.
+We use $n/(\alpha \cdot c)$ as the threshold as suggested by~\cite{BuchholdSW19} with $c$ being the number of cores and the tuning parameter $\alpha$ set to $32$.
+During the basic customization, edges in the separator are processed once all child tasks have finished.
+This requires synchronization but the overhead is much smaller than the synchronization per level in the loop-based approach.
+During the perfect customization, the separators are processed first.
+Thus, no synchronization is necessary.
+
+Our batched triangle relaxation algorithm can be used with the separator-based parallelization without modifications.
+Only the outer loop in Line~\ref{TODO} must be restricted to the current subgraph.
+Also, contrary to the customization algorithm of Buchhold et al.~\cite{BuchholdSW19}, our variant requires no atomics.
+Because only weights associated with edges of the current vertex $u$ will be modified, no concurrent modifications can occur.
+This makes our basic customization even more effective to parallelize.
+
 \subsubsection{Parallelized Reduced Graph Construction}
+
+
 
 \subsection{Queries}
 
