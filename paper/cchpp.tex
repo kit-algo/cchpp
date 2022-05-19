@@ -67,6 +67,7 @@
 In this chapter we do not propose a new technique for dynamic routing.
 % CRP practical
 % combine incremental contributions to build full routing framework
+% (C)CH-Pot missing ingredient
 Rather, we review and improve on recent advances for Customizable Contraction Hierarchies and show how to bring them all together to build a fully-fledged practical routing framework.
 
 Motivated by computing driving directions, the last two decades have seen intense research on speedup techniques~\cite{BastDGMPSWW16} for Dijkstra's shortest-path algorithm~\cite{Dijkstra59}, which rely on a slow preprocessing phase to enable fast queries. Almost all previous experimental studies (e.g., \cite{GoldbergH05, HilgerKMS09, Lauther09, DibbeltSW16, Gutman04, AbrahamDGW11, ArzLS13, BastFSS07}) are restricted to the simplified model, where vertices represent intersections, edges represent road segments, and turn costs are ignored. While it has been widely believed that turn restrictions and turn costs are easy to incorporate, Delling et al.~\cite{DellingGPW17} show that most algorithms have a significant performance penalty. For long-range queries, one may argue that turn costs are negligible. When analyzing intracity traffic~\cite{BuchholdSW19, SchneckN20} or dispatching autonomous vehicles operating within a particular city~\cite{BischoffM16, BischoffMN17}, however, taking turn costs into account is of utmost importance.
@@ -360,7 +361,7 @@ Perfect
 % TODO introduce level
 The original CCH publication proposed to parallelize both the basic and perfect customization with a simple loop-based approach by processing edges on the same level in parallel, as they are independent\footnote{
 This is only obvious for the basic customization.
-However, for the perfect customization, the authors of~\cite{DibbeltSW16} proved that the algorithm is correct, too, as long as weight updates (but not comparisons) happen atomically.
+However, for the perfect customization, the authors of~\cite{DibbeltSW16} proved that the algorithm is correct, too, as long as weight updates (but comparisons not necessarily) happen atomically.
 } from each other.
 Unfortunately, this approach requires a synchronization step after the completion of each level.
 This is detrimental to load balancing.
@@ -383,7 +384,36 @@ This makes our basic customization even more effective to parallelize.
 
 \subsubsection{Parallelized Reduced Graph Construction}
 
+The original CCH publication does not provide any details on the construction of the reduced augmented graph, probably because it appears rather trivial from an algorithmic point of view.
+All that is to do is filter out edges from a graph in adjacency representation.
+However, building the reduced augmented graph actually makes up a significant share of the running time of the customization phase~\cite{BuchholdSW19}.
+Therefore, an efficient parallelization schema is important.
+% buchhold: mapping datastr, enumerating triangles for unpacking
+We propose the following parallelization.
 
+We split the graph in $\beta \cdot c$ chunks of vertices with consecutive IDs where $c$ is the number of cores and $\beta$ a tuning parameter by default set to 4.
+The chunk sizes are chosen such that every chunk contains roughly the same amount of \emph{edges} (not vertices).
+We find the ID of the first vertex of the $i$'th chunk by taking the tail of the edge with ID $i \cdot \lceil \frac{m}{\beta c} \rceil$.
+Then, we build the reduced graph in three passes over all edges.
+In the first pass, all chunks are processed in parallel and the remaining edges in each chunk are counted.
+A sequential prefix sum over these sums yields the reduced edge ID range for each chunk.
+In the second pass, the remaining edges are copied to the new graph, again processing chunks in parallel.
+Edge data consists at the very least of the head vertex of each edge and the weight.
+In our implementation of CCH, we additionally maintain arrays with the tail of each vertex and the unpacking information.
+Note that the unpacking information will be temporarily invalid at this point because the referenced edge IDs are from $E^+$ and not $E^*$.
+Fixing this is the goal of the third pass but this requires an explicit edge ID mapping.
+% For this, we also establish a mapping from old edge IDs to new edge IDs during the second pass.
+For this mapping we maintain an additional array of size $|E^+|$.
+The entries are set during the second pass when an edge is copied to the reduced graph.
+Finally, in the third pass, we apply this mapping to the unpacking information.
+In this pass, the chunks are unnecessary and the unpacking data of each edge can be processed in parallel.
+
+Note that while unpacking data consisting of the two edge ids of the corresponding lower triangle offers the fastest unpacking at query time, there are alternatives with different trade-offs.
+The original CCH publication suggests to maintain no unpacking data at all and unpack edges at query time by enumerating lower triangles.
+This reduces the customization effort by makes the unpacking somewhat slower.
+Storing the bottom vertex of the lower triangle to unpack offers is another option.
+This makes the edge ID translation in the reduced graph construction superfluous and offers some speed-up for the unpacking but not as much as having the edge IDs directly accessible.
+% triangles in construction: only helpful when atomics necessary
 
 \subsection{Queries}
 
