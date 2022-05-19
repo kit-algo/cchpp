@@ -18,6 +18,7 @@
 \newcommand*{\echu}{E^{\uparrow}}
 \newcommand*{\rechd}{\overleftarrow{E^{\downarrow}}}
 \newcommand*{\echd}{E^{\downarrow}}
+\newcommand*{\dist}{\mathcal{D}}
 
 \bibliographystyle{plainurl}
 \usetikzlibrary{backgrounds}
@@ -186,7 +187,7 @@ However, this algorithm is rather complex.
 Here, we describe a simpler and even faster algorithm, which so far has only been described in a Bachelor's thesis~\cite{TODO}.
 It is heavily based on the linear time chordal graph recognition algorithm of~\cite{TODO}.
 
-The algorithm iterates over all vertices by ascending rank.
+The algorithm iterates over all vertices in order of ascending rank.
 Let $v$ be the current vertex and $N^+(v)$ its upward neighborhood.
 If this neighborhood is non-empty, the algorithm obtains the upward neighbor $u$ with minimal rank.
 The remaining neighborhood $N^+(v) \setminus u$ of $v$ is merged into the neighborhood of $u$, i.e.\ $N^+(u) \gets N^+(u) \cup N^+(v) \setminus u$.
@@ -205,9 +206,9 @@ The worst-case running time of this variant is slightly worse, but in practice, 
 \subsubsection{Reconstructing Separator Decompositions}
 
 CCH vertex importance orderings are based on a separator decomposition of the input network.
-This decomposition is very useful for several CCH algorithms, for example for the parallelization of the customization or k-nearest-neighbor queries.
-However, some blackbox partitioners such as FlowCutter or InertialFlowCutter will only return the vertex order and not the separator decomposition.
-Luckily, we can reconstruct a decomposition from the elimination tree.
+This decomposition is very useful for several CCH algorithms, for example for the parallelization of the customization or k-nearest-neighbor searches.
+However, some blackbox partitioners such as FlowCutter or InertialFlowCutter will only return the vertex order and not the underlying separator decomposition.
+Luckily, we can reconstruct a decomposition efficiently from the elimination tree.
 
 % forest?
 Consider the highest ranked vertex $v$ with more than one child in the elimination tree.
@@ -234,7 +235,7 @@ Applying this idea recursively yields the whole separator decomposition.
 
 \subsection{Customization}
 
-directed
+% TODO directed
 
 In the customization phase, a weight function $\ell$ is given and the corresponding weight function for the augmented graph $\ell^+$ is computed.
 There are four steps to this phase:
@@ -382,7 +383,7 @@ Also, contrary to the customization algorithm of Buchhold et al.~\cite{BuchholdS
 Because only weights associated with edges of the current vertex $u$ will be modified, no concurrent modifications can occur.
 This makes our basic customization even more effective to parallelize.
 
-\subsubsection{Parallelized Reduced Graph Construction}
+\subparagraph{Parallelized Reduced Graph Construction}
 
 The original CCH publication does not provide any details on the construction of the reduced augmented graph, probably because it appears rather trivial from an algorithmic point of view.
 All that is to do is filter out edges from a graph in adjacency representation.
@@ -417,8 +418,27 @@ This makes the edge ID translation in the reduced graph construction superfluous
 
 \subsection{Queries}
 
+To answer point-to-point shortest path queries, the basic CH query algorithm can be applied without modification.
+However, the construction of the augmented graph $G^+$ admits an even simpler query algorithm~\cite{DibbeltSW16}.
+As proven in~\cite{BauerCRW16}, the set of ancestors of a vertex in the elimination tree is in fact equal to the search space of this vertex in $\gchu$ and $\rgchd$. % reachable vertices?
+As $\gchu$ and $\rgchd$ are directed acyclic graphs and the contraction order is a topological ordering on these graphs, traversing the path in the elimination tree from a vertex to the root while relaxing outgoing edges yields shortest distances.
+Thus, by combining the distances from an elimination tree walk from $s$ on $\gchu$ and from $t$ on $\rgchd$, we can obtain a shortest up-down-path with the length of the shortest path between $s$ and $t$.
+
+This \emph{elimination tree query} is faster than the classical CH query algorithm because no priority queues are required.
+However, it has the downside that no simple stopping criterion can be applied.
+The path to the elimination tree root must always be traversed completely.
+This makes short-range queries unnecessarily slow.
+Buchhold et al.~\cite{BuchholdSW19} propose a simple optimization to mitigate this issue:
+As soon as a tentative total distance $\mu$ was found, only relax the outgoing edges of vertex $v$ if $\dist_{\gchu}(s,v) < \mu$ (or $\dist_{\rgchd}(t,v) < \mu$ in the backward search).
+With this, elimination tree queries are consistently faster than classical CH queries across all distances.
+Buchhold et al. present another optimization which accelerates queries further.
+Because the search graphs are acyclic, the distance of a vertex will never be read again after its outgoing edges were relaxed.
+Thus the stored distance can immediately be reset to $\infty$.
+This allows avoiding an explicit distance resetting phase as proposed in~\cite{DibbeltSW16}.
+The optimization assumes that the searches of both directions are interleaved and that in each step, the search with the lower ranked vertex will be advanced.
+
 \section{Extended Problems}
-\subsection{Lazy RPHAST}
+\subsection{Lazy RPHAST on CCH}
 \subsection{Alternative}
 \subsection{kNN}
 \subsection{Turns}
