@@ -11,7 +11,7 @@
     \global\let\myangle\pgfmathresult % we need a global macro
 }
 
-\newcommand*{\elimtree}{\mathtt{T}}
+\newcommand*{\elimtree}{\mathtt{ET}}
 \newcommand*{\gchu}{G^{\uparrow}}
 \newcommand*{\gchd}{G^{\downarrow}}
 \newcommand*{\rgchd}{\overleftarrow{G^{\downarrow}}}
@@ -173,7 +173,10 @@ Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimin
 \section{Algorithms}
 \subsection{Metric-Independent Preprocessing}
 
-% undirected/bidirected
+% undirected/bidirected represented by only up
+% permute nodes, order for seps
+% sep decomp to order
+% reorder for cache IFC orders to post
 
 \subsubsection{Ordering}
 \subsubsection{Contraction}
@@ -221,9 +224,9 @@ This follows from the construction of the elimination tree and the augmented gra
 Clearly, all vertices in the subtress have lower rank than $v$.
 Suppose for contradiction there is an edge between vertices $u$ and $w$ from different subtrees $T_u$ and $T_w$.
 Without loss of generality, we assume $u < w$.
-Because $u$ and $w$ are in distinct subtrees, we know $\mathtt{T}[u] \neq w$ and thus $\mathtt{T}[u] < w$.
-Otherwise $\mathtt{T}[u]$ would not be $u$'s lowest ranked upward neighbor.
-However, due to the construction of the augmented graph, the edge $(\mathtt{T}[u], w)$ must exist, too.
+Because $u$ and $w$ are in distinct subtrees, we know $\mathtt{ET}[u] \neq w$ and thus $\mathtt{ET}[u] < w$.
+Otherwise $\mathtt{ET}[u]$ would not be $u$'s lowest ranked upward neighbor.
+However, due to the construction of the augmented graph, the edge $(\mathtt{ET}[u], w)$ must exist, too.
 This holds inductively for every vertex on the path in the elimination tree from $u$ to $v$.
 However, since $w < v$, one of the vertices on this path would have had to have $w$ as its lowest ranked upward neighbor and parent in the elimination tree.
 This is a contradiction.
@@ -456,7 +459,7 @@ This allows for the more efficient realization depicted in Algorithm~\ref{algo:c
 \begin{algorithm2e}
 \KwData{$\mathtt{B}[v]$: tentative distance from $v$ to $t$ as computed by Algorithm~\ref{algo:ch-backward}}
 \KwData{$\mathtt{D}[v]$: memoized distance from $v$ to $t$, $\bot$ initially}
-\KwData{$\mathtt{T}[v]$: parent node of $v$ in the elimination tree, parent of root is $\bot$}
+\KwData{$\mathtt{ET}[v]$: parent node of $v$ in the elimination tree, parent of root is $\bot$}
 \KwData{$\mathtt{S}$: stack with vertices to compute distances, empty initially, only used to store intermediate data}
 \SetKwFunction{Dist}{ComputeAndMemoizeDist}
 \SetKw{Break}{break}
@@ -466,10 +469,10 @@ This allows for the more efficient realization depicted in Algorithm~\ref{algo:c
   $v \gets u$\;
   \While{$\mathtt{D}[v] = \bot$}{
     Push $v$ onto $\mathtt{S}$\;
-    \If{$\mathtt{T}[v] = \bot$}{
+    \If{$\mathtt{ET}[v] = \bot$}{
       \Break\;
     }
-    $v \gets \mathtt{T}[v]$\;
+    $v \gets \mathtt{ET}[v]$\;
   }
   \tcp{Fill $\mathtt{D}$ for those vertices}
   \While{$\mathtt{S}$ not empty}{
@@ -491,24 +494,118 @@ Thus, we can achieve much better distance estimates in the presence of dynamic r
 We denote A* with a potential realized by Elimination Tree Lazy RPHAST in combination with the low-degree optimizations as \emph{CCH-Potentials}.
 However, the algorithm is also very useful as an incremental one-to-many algorithm as we show in the next section.
 
-\subsection{kNN}
+\subsection{Nearest Neighbor Queries}
 
-Important feature bla. % TODO
+An important feature for practical routing applications are Point-of-Interest queries, for example finding gas stations.
+Typically, user want a few options in close proximity to their position.
+This can be formalized as the $k$-nearest-neighbor problem.
+Given a graph $G=(V,E)$ with edge lengths $\ell$, a set of targets $T \subseteq V$ and a source vertex $s$, compute a target subset $T' \subseteq T$ with $|T'| = k$ such that $\dist(s, t') \leq \dist(s, t'')$ for and $t' \in T'$ and $t'' \in T \setminus T'$.
+For this problem, we consider four phases:
+Preprocessing and customization are the same as before, i.e.\ $G$ and $\ell$ are given, respectively.
+In the additional \emph{selection} phase the targets $T$ are provided.
+Finally, in the query phase, $s$ is given and $T'$ should be computed as quickly as possible.
+% online?
+
 In~\cite{TODO}, an efficient $k$-nearest-neighbor query algorithms for CCH was introduced.
-It heavily utilizes the separator decomposition of the network.
+It utilizes the separator decomposition of the network.
 Here, we present an improved version of this algorithm.
 The original algorithm performs many point-to-point searches from the same source vertex.
 We accelerate these searches by integrating our Lazy RPHAST on CCH routine.
 As our experiments show, this results in speed-ups of up to an order of magnitude.
 
-\subsection{Alternative}
+The algorithm maintains a max-heap of the $k$ closest targets found so far, which is initially empty.
+Then, the separator decomposition of the graph is explored recursively, starting with the full graph.
+The order in which the algorithm recursively descends into subcells is determined by the shortest distance from $s$ to the any vertex in the cell.
+If this distance is greater than the $k$'th closest distance already found (accessible in the max-heap) or if there are no targets in a cell, the cell can be skipped entirely.
+When exploring a cell, first, the distance form $s$ to any target vertex in the separator of this cell is checked.
+If one of these targets is close enough to $s$, it is inserted into the max-heap, possibly replacing a vertex further away.
+Then, the distance from $s$ to each subcell is computed.
+If $s$ is included in this cell, this distance is zero.
+The subcells are then sorted increasingly by distance from $s$.
+Finally, the algorithm is invoked recursively on each subcell in this order by distance.
+When a cell contains less target vertices than a certain threshold (experimentally determined to 8), the distances to each target are computed directly and the separator decomposition exploration is stopped at this branch.
+% make sure stuff is precise
+
+Computing distances from $s$ to targets and cells makes up a significant share of the running time of this algorithm.
+We therefore propose to utilize Elimination Tree Lazy RPHAST for this:
+Initially compute distances from $s$ on $\gchu$ with an elimination tree walk.
+Then, use Algorithm~\ref{algo:cch_pot} to quickly obtain distances from $s$ to any vertex $v$ on demand while utilizing the already computed distances.
+To efficiently compute distances to a cell $X$, we build on observations made in~\cite{TODO}.
+The boundary $B(X)$ of a cell is the set of vertices adjacent to a vertex in $X$: $B(X) = \{ v \mid uv \in E^+, u \in X, v \in V \setminus X \}$.
+The minimum distance from $s$ to any vertex in the boundary $\min_{v \in B(X)} \dist(s, v)$ is a very good lower bound on the distance from $s$ to any vertex in $X$.
+This is sufficient for the algorithm and can be computed very efficiently.
+All boundary vertices must have higher rank than the cell vertices and lie on the elimination tree path from any cell vertex to the root.
+Running Algorithm~\ref{algo:cch_pot} once from the lowest ranked boundary vertex is therefore sufficient to ensure that the distance from $s$ to all boundary vertices has been computed.
+As proven in~\cite{TODO}, the upward neighbors in $G^+$ (but not $G^*$) of the highest ranked cell vertex are exactly the boundary vertices.
+Therefore, the minimum distance to any boundary vertex can be quickly obtained by iterating over the outgoing edges of this vertex and checking the distances computed by Algorithm~\ref{algo:cch_pot}.
+
+The algorithm also requires efficient access to the targets and vertices in a certain cell.
+For this, one can utilize that the vertices in each cell appear as a consecutive range in the contraction order and the separator vertices are the last vertices in this range.
+Thus, these vertices can be easily accessed by storing the ID of the first vertex, the last vertex and the first separator vertex with each cell of the decomposition.
+Access to the targets is possible with an auxiliary array $\mathtt{A}$ of length $n$ where $\mathtt{A}[i]$ indicates the number of targets among the first $i$ vertices.
+This array can be filled with a linear sweep over the targets (sorted by vertex id) $\mathtt{T}$ and $\mathtt{A}$
+This linear sweep makes up the selection phase.
+
+\subsection{Alternatives}
+
+Providing users with multiple alternative good routes to choose from is another relevant feature for practical routing applications.
+The penalty method is an established framework for computing such alternative routes~\cite{bdgs-argrn-11,krs-eepma-13,pz-iarp-13,kobitzsch2015alternative}.
+It computes an alternative graph instead of a set of alternative routes.
+This graph is constructed iteratively.
+In each iteration, a shortest path between $s$ and $t$ is computed.
+This path (or certain parts of it) is then added to the alternative graph depending on certain quality criteria.
+Finally, all edge weights of the path and possibly adjoined edges are penalized.
+This is repeated until the current path is more than $1 + \epsilon$ times longer than the original distance or until certain other stopping criteria are fulfilled.
+
+The running time of the penalty method is usually dominated by shortest path computations.
+The computations are performed on $G_{\ell}$ with a few increased edge weights.
+This setting seems like a natural fit for A* with CH-Potentials.
+While the alternative route schema outlined above is conceptually simple, it leaves open quite a few details which may have a strong impact on performance.
+In this work, we do not develop our own variant of the penalty method.
+Instead we aim to reproduce the configuration used by Kobitzsch in his dissertation~\cite{kobitzsch2015alternative}.
+To the best of our knowledge, this is the latest, most thoroughly engineered and evaluated iteration of the penalty method.
+It also achieves the qualitatively best results.
+Some details remain unclear from the description in~\cite{kobitzsch2015alternative}.
+Luckily, we could obtain the original implementation from the authors to resolve all open questions.
+As we use the same configuration, qualitative results are directly comparable.
+We can focus on comparing running times.
+
+To ease our exposition, we briefly reiterate the details of Kobitzsch's configuration.
+The stretch is limited to $\epsilon = 0.25$, i.e. for any path $P = (u,\dots,v)$ in the alternative graph $w(P) \leq (1+\epsilon) \cdot \dist(u,v)$.
+% \todo{Das bedeutet, dass der Alternativgraph z.B. Zyklenfrei sein muss. Sobald es einen Zyklus gibt kann ich $w(P)$ beliebig groß machen.}
+Shortest path edges are penalized multiplicative with a factor of $\psi = 1.1$, i.e. when an edges was on the shortest path in $k$ iterations its weight will be $w_q = w_{\ell}\cdot\psi^k$.
+We also penalize edges incident to shortest paths with an asymmetric additive rejoin penalty.
+% \todo{incident = nur incomming edges oder auch outgoing? rejoin klingt nur nach incomming, incident klingt nach beiden.}
+An edge $uv$ where $u$ is on a shortest path but $v$ is not will get its weight increased by $\psi_r \cdot \dist_{w_{\ell}}(s,t) \cdot \frac{\dist_{w_q}(s,u)}{\dist_{w_q}(s,t)}$.
+Analogously, an edge $uv$ where $v$ is on a shortest path but $u$ is not will get its weight increased by $\psi_r \cdot \dist_{w_{\ell}}(s,t) \cdot \frac{\dist_{w_q}(v,t)}{\dist_{w_q}(s,t)}$.
+% \todo{Was ist $w_q$ in diesem Kontext?}
+% \todo{Ich habe nicht verstanden was diese $\psi_r$ Formeln tun.}
+$\psi_r$ is set to 0.01.
+To avoid over-penalization, we count the times a \emph{node} was on a shortest path and do not apply penalties, when this number exceeds $k_{\max} := \lceil\log_{\psi}(1+\epsilon)\rceil + 2$.
+Shortest paths are split into segments not yet contained in the alternative graph.
+A segment is only added if it is long enough (at least $0.05 \cdot \dist_{w_{\ell}}(s,t)$) and does not violate the maximum stretch condition.
+We terminate the algorithm when any of the following conditions becomes true:
+\begin{itemize}
+  \item All nodes on the current shortest path have been penalized $k_{\max}$ times.
+  \item 10 ore more segments have been added to the alternative graph.
+  \item The shortest path is longer than $(1+\epsilon) \cdot \dist_{w_{\ell}}(s,t)$ with respect to the original metric.
+  \item The shortest path is longer than $(1+\epsilon) \cdot \psi + 2\psi_r \cdot \dist_{w_{\ell}}(s,t)$ with respect to the penalized metric.
+\end{itemize}
+The last two stopping criteria can both be utilized for additional pruning in the A*.
+As a final optimization, we run the forward and backward search in parallel in two threads.
+
+In~\cite{adgw-arrn-13} Abraham et al. describe a variation of the penalty method to directly obtain alternative routes rather than an alternative graph.
+They return the first path which shares less than 80\% with the original path and has stretch less than $1+\epsilon$.
+However, their approach uses a simpler penalization schema.
+We also implement this variant with CH-Potentials but stick to the penalization schema from Kobitzsch~\cite{kobitzsch2015alternative} and denote this approach as \emph{penalty routes}.
+This leads to some qualitative improvements compared to the results reported in~\cite{adgw-arrn-13}.
 
 \subsection{Turns}
 % \subsection{CCH on the Edge-based Model}
 \label{sec:cch-on-edge-based-model}
 
 CCH can be applied to the edge-based model without modifications.
-However, running times suffer significantly.
+However, preprocessing running times suffer significantly.
 We therefore propose optimizations to reduce the slowdown.
 
 \subparagraph*{Contraction Order}
@@ -631,6 +728,12 @@ As shortcuts get the weight of the shortest path through lower ranked vertices, 
   \end{tikzpicture}
   \caption{On the left is a visualization of a cut in~$G$. In the middle is an arbitrary contraction order which results in no infinite edges after the first four contractions. On the right, the edges in the order are grouped which results in three infinite edges after the first four contractions (shown by the dotted edges). \label{fig:reorder_cut}}
 \end{figure}
+
+\subsubsection{Turns with CCH-Potentials}
+
+It is also possible to sidestep the preprocessing and customization slowdown entirely at the cost of some query performance.
+As shown in the previous chapter, CH-Potentials are very effective when applied to turn costs and restrictions.
+Thus, we can also support turn costs and restrictions in combination with customizability by running bidirectional A* on the expanded graph $G_e$ with CCH-Potentials as the heuristic function.
 
 \section{Experiments}
 \label{sec:experiments}
