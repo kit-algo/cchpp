@@ -17,6 +17,8 @@
 \newcommand*{\rgchd}{\overleftarrow{G^{\downarrow}}}
 \newcommand*{\echu}{E^{\uparrow}}
 \newcommand*{\rechd}{\overleftarrow{E^{\downarrow}}}
+\newcommand*{\rgchu}{\overleftarrow{G^{\uparrow}}}
+\newcommand*{\rechu}{\overleftarrow{E^{\uparrow}}}
 \newcommand*{\echd}{E^{\downarrow}}
 \newcommand*{\dist}{\mathcal{D}}
 
@@ -177,10 +179,11 @@ Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimin
 
 % undirected/bidirected represented by only up
 % permute nodes, order for seps
+
+\subsubsection{Ordering}
 % sep decomp to order
 % reorder for cache IFC orders to post
 
-\subsubsection{Ordering}
 \subsubsection{Contraction}
 
 Once an importance ordering was obtained, the remaining part of the metric-independent preprocessing is to compute the topology of the augmented graph $G^+=(V, E^+)$.
@@ -241,6 +244,7 @@ Applying this idea recursively yields the whole separator decomposition.
 \subsection{Customization}
 
 % TODO directed
+% - Directed Weights
 
 In the customization phase, a weight function $\ell$ is given and the corresponding weight function for the augmented graph $\ell^+$ is computed.
 There are four steps to this phase:
@@ -259,32 +263,47 @@ There are four steps to this phase:
 The first two steps are mandatory.
 Steps three and four only help to accelerate queries.
 
-We now focus on the basic customization.
+We now focus on the basic customization. % TODO perfect customization
 The basic schema still leaves open quite a few important details.
 In theory, any edge iteration order, which can guarantee that the two lower edges of each triangle are final before the top edge is processed, is sufficient.
 In practice, the easiest and most useful way is to iterate over all vertices $u$ by ascending rank and than process all outgoing edges $uv$ with $u < v$.
-Also, the way triangles are enumerated is critical for the performance.
+The way triangles are enumerated is critical for the performance.
 The original CCH publication suggests to enumerate lower triangles of an edge $uv$ by performing a coordinated linear sweep over the incoming edges $uw \in \echd$ of $u$ and $vw \in \echd$ of $v$.
 Buchhold et al. noticed that enumerating upper triangles is faster than enumerating lower triangles and suggest an improved basic customization algorithm.
 The algorithm also iterates over all edges $uv$ ordered by the lower-ranked endpoint.
 However, for each edge now the upper triangles $(u,w,v)$ where $w>u$ and $w>v$ are enumerated.
-Now, the weights of $wv$ and $vw$ are relaxed with the length of the path over $u$.
+Now, the weights of $wv$ and $vw$ are relaxed with the length of the path over $u$, i.e.\ the triangle is relaxed as a \emph{lower} triangle.
 
+The reason why this method of triangle enumeration is faster lies in the distribution of the vertex degrees.
+The classical approach will iterate for every edge over the downward edges of both endpoints.
+This results in a total number of iterations of
 \[
-\sum_{v \in V}( \deg_{\gchu}(v)\deg_{\gchd}(v) + \deg_{\gchd}(v)^2 )
+\sum_{uv \in \echu} \left( \deg_{\gchd}(u) + \deg_{\gchd}(v) \right) = \sum_{v \in V}\left( \deg_{\gchu}(v)\deg_{\gchd}(v) + \deg_{\gchd}(v)^2 \right)
 \]
-
+Enumerating upper triangles as suggest in~\cite{BuchholdSW19} requires sweeping over the upward edges of both endpoints of each edge:
 \[
-\sum_{v \in V}( \deg_{\gchu}(v)\deg_{\gchd}(v) + \deg_{\gchu}(v)^2 )
+\sum_{uv \in \echu} \left( \deg_{\gchu}(u) + \deg_{\gchu}(v) \right) = \sum_{v \in V}( \deg_{\gchu}(v)\deg_{\gchd}(v) + \deg_{\gchu}(v)^2 )
 \]
+The crucial observation by Buchhold et al. is that usually  the sum of the squared upward degrees $\sum_{v \in V} \deg_{\gchu}(v)^2$ is smaller than the sum of the squared downward degrees $\sum_{v \in V} \deg_{\gchd}(v)^2$ even though the number of edges is the same.
+This is because the downward degrees are more widely dispersed.
 
 \subsubsection{Batched Triangle Relaxation}
 
-We accelerate the triangle enumeration by introducing an additional array $\mathtt{ID}$ of size $n$.
-The entry $\mathtt{ID}[v]$ will temporarily store the weight of an edge $uv$ for different vertices $u$ throughout the customization. % TODO
+We accelerate the triangle enumeration further by introducing an additional array $\mathtt{ID}$ of size $n$.
+The entry $\mathtt{ID}[v]$ will temporarily store the ID of an edge $uv$ for different vertices $u$ throughout the customization. % TODO
 This allows us to replace the coordinated sweeps with a simple iteration over neighbors and a direct access of the weight of the third edge.
+We denote this approach as \emph{batched triangle relaxation} because the triangles for all outgoing upward edges of a single vertex are relaxed in batch.
+It pays off because \emph{all} these triangles must be relaxed.
+If we were only interested in the triangles of a single edge, the classical coordinated sweep would be the better choice.
 
-% batched triangle enumeration?
+Algorithm~\ref{algo:basic_customization} depicts the batched lower triangle relaxation procedure for the basic customization.
+Vertices are processed by ascending rank.
+For each vertex $u$, the IDs of its outgoing edges $uv$ are stored in $\mathtt{ID}[v]$.
+Thus, the weight of this edge can be accessed in $\mathcal{O}(1)$ by the ID of the head vertex $v$.
+Now, lower triangles can be enumerated directly.
+For every downward edge $uw$, the algorithm iterates over all upward edges $wv$ of $w$.
+If $\mathtt{ID}[v]$ contains an entry, a lower triangle was found and the weights of $uv$ and $vu$ can be relaxed accordingly.
+After all lower triangles were relaxed, the entries of $\mathtt{ID}$ are reset.
 
 \begin{algorithm2e}
 \KwData{$\ell^+(uv)$: length of $uv$ in the augmented graph.}
@@ -316,16 +335,26 @@ This allows us to replace the coordinated sweeps with a simple iteration over ne
 \label{algo:basic_customization}
 \end{algorithm2e}
 
-Impl Details
-- Directed Weights
-- Mapping from $\echd$ id to actual edge id
-- Unpacking data
-- need $\echd$
+Additionally, the inner loop can be terminated early.
+For this, the algorithm iterates over the upward edges $wv$ of the lowest vertex $w$ ordered descending by rank.
+Thus, when $v \leq u$ no further lower triangles of any upward edge of $u$ can be found.
 
-Basic
+Note that we need to iterate over the downward edges $\rechu$ of $u$.
+Therefore we also need to store $\rgchu$.
+To access the weights of these edges, we store the ID of the corresponding upward edge alongside each edge.
+Also, this procedure can be easily extended to generate unpacking information:
+Maintain an additional array with the information (for example the IDs of the lower two edges of the shortest lower triangle) for each edge, and update the information together with the edge weights during relaxation.
+
+The total number of iterations with this approach is at most
 \[
-\sum_{v \in V} (\deg_{\gchu}(v)^2 + 2 \cdot \deg_{\gchu}(v))
+\sum_{v \in V} \left(\deg_{\gchu}(v)^2 + 2 \cdot \deg_{\gchu}(v)\right)
 \]
+where the first term is for the triangle relaxations and the second term for maintaining $\mathtt{ID}$.
+The first term comes from counting the iterations at the lowest vertex of each triangle.
+With the stopping criterion for the inner loop, the actual number of iterations will be even smaller.
+% TODO rewrite
+Thus, because of the direct access, we save $\sum_{v \in V}\deg_{\gchu}(v)\deg_{\gchd}(v)$ iterations at the cost of the additional maintenance of the $\mathtt{ID}$ array.
+As our experiments show, this yields a significant speed-up.
 
 \begin{algorithm2e}
 \KwData{$\ell^*(uv)$: length of $uv$ in the augmented graph, initialized to $\ell^*(uv)$.}
@@ -354,13 +383,24 @@ Basic
 \label{algo:perfect_customization}
 \end{algorithm2e}
 
-% track modified
-% no modification of unpacking
+% TODO all the reversed stuff?
 
-Perfect
+Algorithm~\ref{algo:perfect_customization} depicts the batched upper and intermediate triangle relaxation approach for the perfect customization.
+There are a few important differences to Algorithm~\ref{algo:basic_customization}.
+First, vertices are processed in a top-down fashion, i.e.\ by descending rank.
+Second, to enumerate upper triangles, the algorithm iterates over upward edges $uv$ of $u$, and then over upward edges $vw$ of $v$.
+Third, the triangles found this way are relaxed as both upper and intermediate triangles,  i.e.\ both the distances of $uv$ and $uw$ are improved.
+The total number of iterations for this algorithm is
 \[
-\sum_{v \in V} (\deg_{\gchu}(v)\deg_{\gchd}(v) + 2 \cdot \deg_{\gchu}(v))
+\sum_{v \in V} \left(\deg_{\gchu}(v)\deg_{\gchd}(v) + 2 \cdot \deg_{\gchu}(v)\right)
 \]
+where again the first term is for the relaxations and the second for maintaining the $\mathtt{ID}$ array.
+The first term is counted from $v$.
+
+Unpacking information needs not to be updated during the perfect customization.
+Edges with improved weights will be removed anyway in the construction of the reduced graph.
+To identify edges which should later be removed, we use an array with one byte per edge, initially zero.
+When a weight is improved, the respective byte is set to true, which indicates that the edge can be removed later.
 
 \subsubsection{Parallelization}
 
@@ -760,7 +800,7 @@ We perform experiments on several graphs with synthetic and real turn cost data.
 See Table~\ref{tab:graphs} for an overview.
 We use three city-sized instances of the road networks of Chicago~\cite{TNTP}, London and Stuttgart.
 The London and Stuttgart instances were provided by PTV\footnote{\url{https://ptvgroup.com}} with real turn restrictions and cost data.
-Our biggest benchmark instance is a graph of the road network of Western Europe made publicly available for the Ninth DIMACS implementation Challenge~\cite{DemetrescuGJ09} with synthetic turn costs.
+Our biggest benchmark instance is a graph of the road network of Western Europe made publicly available for the Ninth DIMACs implementation challenge~\cite{DemetrescuGJ09} with synthetic turn costs.
 % We use two variants of the Europe instance: one with synthetic turn costs and one using proprietary turn restrictions also provided by PTV.
 To generate synthetic turn costs, we assign a travel time of 100\,s to all U-turns.
 This number does not model a realistic time but a heavy penalty.
