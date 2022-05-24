@@ -93,7 +93,7 @@ namespace "exp" do
         num_threads = 1
         while num_threads <= Etc.nprocessors
           100.times do
-            sh "cargo run --release --bin cch_preprocessing -- #{graph} > #{exp_dir}/preprocessing/$(date --iso-8601=seconds).json"
+            sh "RAYON_NUM_THREADS=#{num_threads} cargo run --release --bin cch_preprocessing -- #{graph} > #{exp_dir}/preprocessing/$(date --iso-8601=seconds).json"
           end
           num_threads *= 2
         end
