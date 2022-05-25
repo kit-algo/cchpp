@@ -12,15 +12,19 @@
 }
 
 \newcommand*{\elimtree}{\mathtt{ET}}
+\newcommand*{\dist}{\mathcal{D}}
 \newcommand*{\gchu}{G^{\uparrow}}
 \newcommand*{\gchd}{G^{\downarrow}}
 \newcommand*{\rgchd}{\overleftarrow{G^{\downarrow}}}
-\newcommand*{\echu}{E^{\uparrow}}
-\newcommand*{\rechd}{\overleftarrow{E^{\downarrow}}}
 \newcommand*{\rgchu}{\overleftarrow{G^{\uparrow}}}
-\newcommand*{\rechu}{\overleftarrow{E^{\uparrow}}}
+\newcommand*{\echu}{E^{\uparrow}}
 \newcommand*{\echd}{E^{\downarrow}}
-\newcommand*{\dist}{\mathcal{D}}
+\newcommand*{\rechd}{\overleftarrow{E^{\downarrow}}}
+\newcommand*{\rechu}{\overleftarrow{E^{\uparrow}}}
+\newcommand*{\lchu}{\ell^{\uparrow}}
+\newcommand*{\lchd}{\ell^{\downarrow}}
+\newcommand*{\rlchd}{\overleftarrow{l^{\downarrow}}}
+\newcommand*{\rlchu}{\overleftarrow{l^{\uparrow}}}
 
 \bibliographystyle{plainurl}
 \usetikzlibrary{backgrounds}
@@ -175,18 +179,62 @@ Hence, the elimination tree query algorithm explores the search space by travers
 Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimination tree search, which achieve significant speedups for short- and mid-range queries.
 
 \section{Algorithms}
+% TODO metric
 \subsection{Metric-Independent Preprocessing}
 
-% undirected/bidirected represented by only up
-% permute nodes, order for seps
+The metric-independent preprocessing phase works purely on the topology of the input network.
+Since changes to this topology should be fairly rare, it is OK for this phase to take hours.
+The algorithms used in this phase work with undirected graphs.
+Therefore, initially, for any edge $uv \in E$ where $vu \notin E$, $vu$ is added to $E$ so the graph becomes bidirected.
 
 \subsubsection{Ordering}
+
+The most crucial step of the metric-independent preprocessing is to obtain a importance ordering.
+In theory, any ordering suffices.
+However, a good ordering is critical for the performance.
+With bad orders it may even be impossible to compute the augmented graph.
+As no witness search is possible without a weight function, all possible shortcuts will be inserted in the contraction step.
+This corresponds to the minimal chordally completed supergraph.
+With a bad ordering the number of additional edges in this supergraph can quickly become too much even for the main memory of high-end server machines.
+This even happens with ``good'' CH orders.
+
+Therefore, CCH are build on \emph{nested dissection orders} which are a very effective heuristic for elimination orders for small chordal supergraphs.
+A nested dissection order is obtained by recursively computing small vertex separators which split the graph in two (or more) roughly balanced \emph{cells}.
+The vertices in the separator get the highest ranks, i.e.\ appear last in the contraction order.
+Removing these separator vertices leaves two (or more) disconnected cells.
+To order the vertices in these cells, the algorithm is applied recursively.
+The order within the separator vertices is arbitrary.
+Luckily, vertices with high rank in this order also lie on many shortest paths.
+All shortest paths from one cell to the other must use a vertex of the separator.
+Thus, a nested dissection order is also a good CH order.
 % sep decomp to order
-% reorder for cache IFC orders to post
+
+% separators on road networks
+Computing small balanced separators is an \textsf{NP}-hard problem.
+Therefore, in general, one cannot expect to obtain small balanced separators efficiently.
+% lot of research
+Luckily, road networks have turned out to be relatively easily separable due to natural features such as rivers or mountain ranges.
+InertialFlow~\cite{TODO} is an example of an extremely simple yet surprisingly effective partitioning algorithm for road networks.
+For this algorithm, vertices are projected on geographic axis (the north-south axis for example), then the first and last quarter of vertices are contracted and then a minimum cut between these contracted vertices is computed.
+Taking the vertices on one side of these cut edges yields a separator candidate.
+Repeating this process for different axis and taking the smallest separator yields surprisingly good results.
+More sophisticated algorithms for partitioning road networks have been developed, are available as open source and can be deployed as black box ordering algorithms.
+A comprehensive review is beyond the scope of this work.
+To the best of our knowledge, InertialFlowCutter, a combination of InertialFlow and FlowCutter, currently yields the best results.
+See for a comprehensive experimental comparison.
+We therefore use InertialFlowCutter orders for all experiments in this work.
+
+To maximize cache efficiency, the contraction order should be derived as a DFS-post order on the tree of the separator decomposition.
+This also ensures that the vertices of each cell form a consecutive range in the order.
+InertialFlowCutter computes a BFS-post ordering.
+We therefore reconstruct the separator decomposition and obtain a corresponding DFS-post order as described in Section~\ref{sec:reconstruct_sep_tree}
 
 \subsubsection{Contraction}
 
+% undirected/bidirected represented by only up
 Once an importance ordering was obtained, the remaining part of the metric-independent preprocessing is to compute the topology of the augmented graph $G^+=(V, E^+)$.
+Since the graph is fully bidirected ($\gchu = \rgchd$) it is sufficient to store every edge only at its lower ranked endpoint, i.e.\ maintain $\gchu$.
+For cache efficiency in this and all following phases it is also crucial to permute the vertex IDs such that IDs equal the ranks.
 This graph must contain \emph{every} shortcut edge which might be relevant for \emph{any} weight function.
 Thus, the simplest way to construct this graph is to perform the classical CH preprocessing for the given order without any witness search, i.e.\ iterate over all vertices by ascending rank and ensure that a shortcut edge exists between any pair of upward neighbors of each vertex.
 The result of this process is the minimal chordal supergraph of $G$ for which the importance ordering is a perfect elimination scheme.
@@ -196,22 +244,27 @@ Here, we describe a simpler and even faster algorithm, which so far has only bee
 It is heavily based on the linear time chordal graph recognition algorithm of~\cite{TODO}.
 
 The algorithm iterates over all vertices in order of ascending rank.
-Let $v$ be the current vertex and $N^+(v)$ its upward neighborhood.
+Let $v$ be the current vertex and $N_{\gchu}(v)$ its upward neighborhood.
 If this neighborhood is non-empty, the algorithm obtains the upward neighbor $u$ with minimal rank.
-The remaining neighborhood $N^+(v) \setminus u$ of $v$ is merged into the neighborhood of $u$, i.e.\ $N^+(u) \gets N^+(u) \cup N^+(v) \setminus u$.
+The remaining neighborhood $N_{\gchu}(v) \setminus u$ of $v$ is merged into the neighborhood of $u$, i.e.\ $N_{\gchu}(u) \gets N_{\gchu}(u) \cup N_{\gchu}(v) \setminus u$.
 The result is the minimal chordal supergraph of $G$ induced by the nested dissection order.
 
 This algorithm can be implemented by maintaining the neighborhood of each vertex in a dynamic array.
-A theoretical worst-case running time of $\mathcal{O}(|V| + |E^+|)$ can be achieved by appending the neighborhoods without checking for duplicates and only performing the deduplication when extracting the minimally ranked upward neighbor.
+A theoretical worst-case running time of $\mathcal{O}(|V| + |\echu|)$ can be achieved by appending the neighborhoods without checking for duplicates and only performing the deduplication when extracting the minimally ranked upward neighbor.
 See~\cite{TODO} for a proof of the running time and the correctness.
 However, for a practical implementation, it is even more efficient to ensure that the neighborhoods never contain any duplicates and are always sorted by rank.
 Merging neighborhoods can then be realized with a coordinated linear sweep.
 The worst-case running time of this variant is slightly worse, but in practice, running times are faster.
 % bad worst-case running time: clique with x additional vertices connected to lowest and highest ranked clique vertex
 
-% elimination tree
+\subsubsection{Elimination Tree}
+
+The parent of a vertex $v$ in the elimination tree is its lowest ranked neighbor in $N_{\gchu}(v)$.
+We store these parents in an array $\mathtt{ET}$ of length $n$.
+% children?
 
 \subsubsection{Reconstructing Separator Decompositions}
+\label{sec:reconstruct_sep_tree}
 
 CCH vertex importance orderings are based on a separator decomposition of the input network.
 This decomposition is very useful for several CCH algorithms, for example for the parallelization of the customization or k-nearest-neighbor searches.
@@ -247,6 +300,7 @@ Applying this idea recursively yields the whole separator decomposition.
 % - Directed Weights
 
 In the customization phase, a weight function $\ell$ is given and the corresponding weight function for the augmented graph $\ell^+$ is computed.
+
 There are four steps to this phase:
 \begin{enumerate}
   \item In the \emph{respecting} step, $\ell^+$ is initialized and for every edge set to the corresponding weight in $\ell$, or to $\infty$ if no such edge exists.
@@ -316,7 +370,7 @@ After all lower triangles were relaxed, the entries of $\mathtt{ID}$ are reset.
     \For{all edges $uv \in \echu$}{
       $\mathtt{ID}[v] \gets uv$\;
     }
-    \For{all edges $uw \in \echd$}{
+    \For{all edges $uw \in \rechu$}{
       \For{all edges $wv \in \echu$ ordered descending by rank of $v$}{
         \If{$v <= u$}{
           \Break\;
