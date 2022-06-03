@@ -39,7 +39,7 @@ stuttgart_exp = "#{data_dir}/stuttgart_exp/"
 
 graphs = [dimacs_eur]
 
-turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger_exp, osm_ger], [stuttgart, stuttgart_exp]]
+turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp]]
 
 namespace "prep" do
   file osm_ger_src_file => data_dir do
@@ -70,6 +70,7 @@ namespace "prep" do
   end
 
   (graphs + turn_graphs.flatten).each do |graph|
+    directory graph
     directory graph + "queries/rank"
     directory graph + "queries/uniform"
 
