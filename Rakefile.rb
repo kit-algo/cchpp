@@ -60,7 +60,7 @@ namespace "prep" do
   end
 
   directory osm_ger_exp
-  file osm_ger_exp => [osm_ger_exp] do
+  file osm_ger_exp => [osm_ger] do
     Dir.chdir "code/rust_road_router" do
       sh "cargo run --release --bin turn_expand_osm -- #{osm_ger} #{osm_ger_exp}"
       sh "cargo run --release --bin write_unit_files -- #{osm_ger_exp} 1000 1"
