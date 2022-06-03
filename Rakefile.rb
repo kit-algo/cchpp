@@ -96,16 +96,18 @@ namespace "prep" do
     end
   end
 
-  turn_graphs.each do |_, graph|
-    file graph + "cch_perm_cuts" => [graph, "code/rust_road_router/lib/InertialFlowCutter/build/console"] do
+  turn_graphs.each do |graph, graph_exp|
+    file graph_exp + "cch_perm_cuts" => [graph_exp, "code/rust_road_router/lib/InertialFlowCutter/build/console"] do
       Dir.chdir "code/rust_road_router" do
         sh "./flow_cutter_cch_cut_order.sh #{graph} #{Etc.nprocessors}"
+        sh "mv #{graph}cch_perm_cuts #{graph_exp}"
       end
     end
 
-    file graph + "cch_perm_cuts_reorder" => [graph, "code/rust_road_router/lib/InertialFlowCutter/build/console"] do
+    file graph_exp + "cch_perm_cuts_reorder" => [graph_exp, "code/rust_road_router/lib/InertialFlowCutter/build/console"] do
       Dir.chdir "code/rust_road_router" do
         sh "./flow_cutter_cch_cut_reorder.sh #{graph} #{Etc.nprocessors}"
+        sh "mv #{graph}cch_perm_cuts_reorder #{graph_exp}"
       end
     end
   end
