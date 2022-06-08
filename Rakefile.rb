@@ -191,7 +191,7 @@ namespace "exp" do
     task num_pois: ["#{exp_dir}/knn/num_pois"] + graphs.map { |g|  g + 'cch_perm' } do
       Dir.chdir "code/rust_road_router" do
         graphs.each do |g|
-          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_entire_graph -- #{graph} > #{exp_dir}/knn/num_pois/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_entire_graph -- #{g} > #{exp_dir}/knn/num_pois/$(date --iso-8601=seconds).json"
         end
       end
     end
