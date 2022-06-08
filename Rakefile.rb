@@ -156,6 +156,7 @@ namespace "exp" do
 
     task queries: ["#{exp_dir}/turns/queries"] + turn_graphs.map { |g, g_exp|  [g + 'cch_perm', g_exp + 'cch_perm', g_exp + 'cch_perm_cuts', g_exp + 'cch_perm_cuts_reorder'] }.flatten do
       Dir.chdir "code/rust_road_router" do
+        # TODO disable par and pinning
         turn_graphs.each do |g, g_exp|
           # non-turn baseline
           sh "cargo run --release --no-default-features --features '' --bin cch_rand_queries_by_features -- #{g} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
@@ -177,6 +178,20 @@ namespace "exp" do
           sh "cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # CCHPot
           sh "cargo run --release --bin cchpot_turns_with_pre_exp -- #{g} cch_perm #{g_exp} > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+        end
+      end
+    end
+  end
+
+  namespace "kNN" do
+    directory "#{exp_dir}/knn/num_pois"
+    directory "#{exp_dir}/knn/reproduction/num_pois"
+    directory "#{exp_dir}/knn/reproduction/ball_size"
+
+    task num_pois: ["#{exp_dir}/knn/num_pois"] + graphs.map { |g|  g + 'cch_perm' } do
+      Dir.chdir "code/rust_road_router" do
+        graphs.each do |g|
+          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_entire_graph -- #{graph} > #{exp_dir}/knn/num_pois/$(date --iso-8601=seconds).json"
         end
       end
     end
