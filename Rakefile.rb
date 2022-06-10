@@ -37,10 +37,14 @@ dimacs_eur_turns_exp = "#{data_dir}/europe_turns_exp/"
 
 stuttgart = "#{data_dir}/stuttgart/"
 stuttgart_exp = "#{data_dir}/stuttgart_exp/"
+london = "#{data_dir}/london/"
+london_exp = "#{data_dir}/london_exp/"
+chicago = "#{data_dir}/chicago/"
+chicago_exp = "#{data_dir}/chicago_exp/"
 
 graphs = [dimacs_eur, osm_ger]
 
-turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp]]
+turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp], [london, london_exp], [chicago, chicago_exp]]
 
 namespace "prep" do
   file osm_ger_src_file => data_dir do
