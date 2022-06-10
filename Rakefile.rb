@@ -29,6 +29,7 @@ osm_ger_exp = "#{data_dir}/osm_ger_exp/"
 live_dir = "#{data_dir}/mapbox/live-speeds/2019-08-02-15:41/"
 typical_glob = "#{data_dir}/mapbox/typical-speeds/**/**/*.csv"
 typical_file = "#{data_dir}/mapbox/typical-tuesday-cleaned.csv"
+live_travel_time = 'live_travel_time'
 
 dimacs_eur = "#{data_dir}/europe/"
 dimacs_eur_turns = "#{data_dir}/europe_turns/"
@@ -37,7 +38,7 @@ dimacs_eur_turns_exp = "#{data_dir}/europe_turns_exp/"
 stuttgart = "#{data_dir}/stuttgart/"
 stuttgart_exp = "#{data_dir}/stuttgart_exp/"
 
-graphs = [dimacs_eur]
+graphs = [dimacs_eur, osm_ger]
 
 turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp]]
 
@@ -58,6 +59,12 @@ namespace "prep" do
     end
     Dir.chdir "code/rust_road_router" do
       sh "cargo run --release --bin write_unit_files -- #{osm_ger} 1000 1"
+    end
+  end
+
+  file "#{osm_ger}#{live_travel_time}" => osm_ger do
+    Dir.chdir "code/rust_road_router" do
+      sh "cargo run --release --bin import_mapbox_live -- #{osm_ger} #{live_dir} #{live_travel_time}"
     end
   end
 
@@ -118,10 +125,11 @@ end
 
 namespace "exp" do
   desc "Run all experiments"
-  task all: [:preprocessing, :partitioning]
+  task all: [:preprocessing, :partitioning, :queries]
 
   directory "#{exp_dir}/preprocessing"
   directory "#{exp_dir}/partitioning"
+  directory "#{exp_dir}/queries"
 
   namespace "turns" do
     task all: [:customization, :queries, :partitioning]
@@ -130,7 +138,7 @@ namespace "exp" do
     directory "#{exp_dir}/turns/customization"
     directory "#{exp_dir}/turns/queries"
 
-    task partitioning: ["#{exp_dir}turns/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + turn_graphs.flatten do
+    task partitioning: ["#{exp_dir}/turns/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + turn_graphs.flatten do
       hostname = `hostname`
       turn_graphs.each do |g, g_exp|
         10.times do
@@ -236,7 +244,7 @@ namespace "exp" do
   namespace "lazy_rphast" do
     directory "#{exp_dir}/lazy_rphast"
 
-    task num_pois: ["#{exp_dir}/lazy_rphast"] + graphs.map { |g|  g + 'cch_perm' } do
+    task ball_size: ["#{exp_dir}/lazy_rphast"] + graphs.map { |g|  g + 'cch_perm' } do
       Dir.chdir "code/rust_road_router" do
         graphs.each do |g|
           sh "cargo run --release --features cch-disable-par --bin lazy_rphast_inc_cch_vs_elim_tree -- #{g} > #{exp_dir}/lazy_rphast/$(date --iso-8601=seconds).json"
@@ -270,6 +278,19 @@ namespace "exp" do
       end
     end
   end
+
+  task queries: ["#{exp_dir}/queries", osm_ger + live_travel_time] + graphs.map { |g|  g + 'cch_perm' } do
+    Dir.chdir "code/rust_road_router" do
+      graphs.each do |graph|
+        ['travel_time', 'geo_distance'].each do |m|
+          sh "cargo run --release --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{graph} #{m} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{graph} #{m} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
+        end
+      end
+      sh "cargo run --release --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{osm_ger} #{live_travel_time} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
+      sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{osm_ger} #{live_travel_time} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
+    end
+  end
 end
 
 namespace 'build' do
@@ -295,7 +316,7 @@ namespace 'build' do
 
   directory "code/rust_road_router/lib/InertialFlowCutter/build"
   desc "Building Flow Cutter Accelerated"
-  file "code/rust_road_router/lib/InertialFlowCutter/build/console" => "code/rust_road_router/lib/InertialFlowCutter/build" do
+  file "code/rust_road_router/lib/InertialFlowCutter/build/console" => ["code/rust_road_router/lib/InertialFlowCutter/src/console.cpp", "code/rust_road_router/lib/InertialFlowCutter/build"] do
     Dir.chdir "code/rust_road_router/lib/InertialFlowCutter/build" do
       sh "cmake -DCMAKE_BUILD_TYPE=Release .. && make console"
     end
