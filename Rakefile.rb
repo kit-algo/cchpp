@@ -124,10 +124,32 @@ namespace "exp" do
   directory "#{exp_dir}/partitioning"
 
   namespace "turns" do
-    task all: [:customization, :queries]
+    task all: [:customization, :queries, :partitioning]
 
+    directory "#{exp_dir}/turns/partitioning"
     directory "#{exp_dir}/turns/customization"
     directory "#{exp_dir}/turns/queries"
+
+    task partitioning: ["#{exp_dir}turns/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + turn_graphs.flatten do
+      hostname = `hostname`
+      turn_graphs.each do |g, g_exp|
+        10.times do
+          Dir.chdir "code/rust_road_router" do
+            filename = "#{exp_dir}/turns/partitioning/" + `date --iso-8601=seconds`.strip + '.out'
+            sh "echo '#{g} #{hostname}' >> #{filename}"
+            sh "./flow_cutter_cch_order.sh #{g} #{Etc.nprocessors} >> #{filename}"
+
+            filename = "#{exp_dir}/turns/partitioning/" + `date --iso-8601=seconds`.strip + '.out'
+            sh "echo '#{g_exp} cuts #{hostname}' >> #{filename}"
+            sh "./flow_cutter_cch_cut_reorder.sh #{g} #{Etc.nprocessors} >> #{filename}"
+
+            filename = "#{exp_dir}/turns/partitioning/" + `date --iso-8601=seconds`.strip + '.out'
+            sh "echo '#{g_exp} #{hostname}' >> #{filename}"
+            sh "./flow_cutter_cch_order.sh #{g_exp} #{Etc.nprocessors} >> #{filename}"
+          end
+        end
+      end
+    end
 
     task customization: ["#{exp_dir}/turns/customization"] + turn_graphs.map { |g, g_exp|  [g + 'cch_perm', g_exp + 'cch_perm', g_exp + 'cch_perm_cuts', g_exp + 'cch_perm_cuts_reorder'] }.flatten do
       Dir.chdir "code/rust_road_router" do
@@ -159,25 +181,25 @@ namespace "exp" do
         # TODO disable par and pinning
         turn_graphs.each do |g, g_exp|
           # non-turn baseline
-          sh "cargo run --release --no-default-features --features '' --bin cch_rand_queries_by_features -- #{g} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'perfect-customization' --bin cch_rand_queries_by_features -- #{g} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_by_features -- #{g} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par perfect-customization' --bin cch_rand_queries_by_features -- #{g} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # slow order on expanded graph
-          sh "cargo run --release --no-default-features --features '' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # cut order
-          sh "cargo run --release --no-default-features --features '' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # remove inf
-          sh "cargo run --release --no-default-features --features 'remove-inf' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'remove-inf perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par remove-inf' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par remove-inf perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # directed hierarchies
-          sh "cargo run --release --no-default-features --features 'directed' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par directed' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par directed perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # reordered separators
-          sh "cargo run --release --no-default-features --features 'directed' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par directed' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --no-default-features --features 'cch-disable-par directed perfect-customization' --bin cch_rand_queries_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
           # CCHPot
-          sh "cargo run --release --bin cchpot_turns_with_pre_exp -- #{g} cch_perm #{g_exp} > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --features 'cch-disable-par' --bin cchpot_turns_with_pre_exp -- #{g} cch_perm #{g_exp} > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
         end
       end
     end
@@ -185,13 +207,39 @@ namespace "exp" do
 
   namespace "kNN" do
     directory "#{exp_dir}/knn/num_pois"
-    directory "#{exp_dir}/knn/reproduction/num_pois"
-    directory "#{exp_dir}/knn/reproduction/ball_size"
+    directory "#{exp_dir}/knn/repr/num_pois"
+    directory "#{exp_dir}/knn/repr/ball_size"
 
     task num_pois: ["#{exp_dir}/knn/num_pois"] + graphs.map { |g|  g + 'cch_perm' } do
       Dir.chdir "code/rust_road_router" do
         graphs.each do |g|
           sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_entire_graph -- #{g} > #{exp_dir}/knn/num_pois/$(date --iso-8601=seconds).json"
+        end
+      end
+    end
+
+    namespace "repr" do
+      task num_pois: ["#{exp_dir}/knn/repr/num_pois", dimacs_eur + 'cch_perm'] do
+        Dir.chdir "code/rust_road_router" do
+          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_entire_graph -- #{dimacs_eur} > #{exp_dir}/knn/repr/num_pois/$(date --iso-8601=seconds).json"
+        end
+      end
+
+      task ball_size: ["#{exp_dir}/knn/repr/ball_size", dimacs_eur + 'cch_perm'] do
+        Dir.chdir "code/rust_road_router" do
+          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_varying_balls -- #{dimacs_eur} > #{exp_dir}/knn/repr/num_pois/$(date --iso-8601=seconds).json"
+        end
+      end
+    end
+  end
+
+  namespace "lazy_rphast" do
+    directory "#{exp_dir}/lazy_rphast"
+
+    task num_pois: ["#{exp_dir}/lazy_rphast"] + graphs.map { |g|  g + 'cch_perm' } do
+      Dir.chdir "code/rust_road_router" do
+        graphs.each do |g|
+          sh "cargo run --release --features cch-disable-par --bin lazy_rphast_inc_cch_vs_elim_tree -- #{g} > #{exp_dir}/lazy_rphast/$(date --iso-8601=seconds).json"
         end
       end
     end
