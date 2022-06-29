@@ -239,7 +239,7 @@ namespace "exp" do
 
       task ball_size: ["#{exp_dir}/knn/repr/ball_size", dimacs_eur + 'cch_perm'] do
         Dir.chdir "code/rust_road_router" do
-          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_varying_balls -- #{dimacs_eur} > #{exp_dir}/knn/repr/num_pois/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --features cch-disable-par --bin cch_nearest_neighbors_from_varying_balls -- #{dimacs_eur} > #{exp_dir}/knn/repr/ball_size/$(date --iso-8601=seconds).json"
         end
       end
     end
