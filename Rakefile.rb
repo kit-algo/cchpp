@@ -166,31 +166,26 @@ namespace "exp" do
     task customization: ["#{exp_dir}/turns/customization"] + turn_graphs.map { |g, g_exp|  [g + 'cch_perm', g_exp + 'cch_perm', g_exp + 'cch_perm_cuts', g_exp + 'cch_perm_cuts_reorder'] }.flatten do
       Dir.chdir "code/rust_road_router" do
         turn_graphs.each do |g, g_exp|
-          # non-turn baseline
-          sh "cargo run --release --no-default-features --features '' --bin cch_customization_by_features -- #{g} cch_perm > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'perfect-customization' --bin cch_customization_by_features -- #{g} cch_perm > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          # slow order on expanded graph
-          sh "cargo run --release --no-default-features --features '' --bin cch_customization_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          # cut order
-          sh "cargo run --release --no-default-features --features '' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          # remove inf
-          sh "cargo run --release --no-default-features --features 'remove-inf' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'remove-inf perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          # directed hierarchies
-          sh "cargo run --release --no-default-features --features 'directed' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          # reordered separators
-          sh "cargo run --release --no-default-features --features 'directed' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+          ["", "RAYON_NUM_THREADS=1 "].each do |pre|
+            # non-turn baseline
+            sh "#{pre}cargo run --release --no-default-features --features 'perfect-customization' --bin cch_customization_by_features -- #{g} cch_perm > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+            # slow order on expanded graph
+            sh "#{pre}cargo run --release --no-default-features --features 'perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+            # cut order
+            sh "#{pre}cargo run --release --no-default-features --features 'perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+            # remove inf
+            sh "#{pre}cargo run --release --no-default-features --features 'remove-inf perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+            # directed hierarchies
+            sh "#{pre}cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+            # reordered separators
+            sh "#{pre}cargo run --release --no-default-features --features 'directed perfect-customization' --bin cch_customization_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/customization/$(date --iso-8601=seconds).json"
+          end
         end
       end
     end
 
     task queries: ["#{exp_dir}/turns/queries"] + turn_graphs.map { |g, g_exp|  [g + 'cch_perm', g_exp + 'cch_perm', g_exp + 'cch_perm_cuts', g_exp + 'cch_perm_cuts_reorder'] }.flatten do
       Dir.chdir "code/rust_road_router" do
-        # TODO disable par and pinning
         turn_graphs.each do |g, g_exp|
           # non-turn baseline
           sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_by_features -- #{g} cch_perm > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
