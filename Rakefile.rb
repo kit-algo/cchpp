@@ -43,6 +43,7 @@ chicago = "#{data_dir}/chicago/"
 chicago_exp = "#{data_dir}/chicago_exp/"
 
 graphs = [dimacs_eur, osm_ger]
+main_graphs = graphs + [stuttgart]
 
 turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp], [london, london_exp], [chicago, chicago_exp]]
 
@@ -252,21 +253,7 @@ namespace "exp" do
     end
   end
 
-  task preprocessing: ["#{exp_dir}/preprocessing"] + graphs.map { |g|  g + 'cch_perm' } do
-    Dir.chdir "code/rust_road_router" do
-      graphs.each do |graph|
-        num_threads = 1
-        while num_threads <= Etc.nprocessors
-          100.times do
-            sh "RAYON_NUM_THREADS=#{num_threads} cargo run --release --bin cch_preprocessing -- #{graph} > #{exp_dir}/preprocessing/$(date --iso-8601=seconds).json"
-          end
-          num_threads *= 2
-        end
-      end
-    end
-  end
-
-  task partitioning: ["#{exp_dir}/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + graphs do
+  task partitioning: ["#{exp_dir}/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + main_graphs do
     graphs.each do |graph|
       10.times do
         Dir.chdir "code/rust_road_router" do
@@ -278,9 +265,23 @@ namespace "exp" do
     end
   end
 
-  task queries: ["#{exp_dir}/queries", osm_ger + live_travel_time] + graphs.map { |g|  g + 'cch_perm' } do
+  task preprocessing: ["#{exp_dir}/preprocessing"] + main_graphs.map { |g|  g + 'cch_perm' } do
     Dir.chdir "code/rust_road_router" do
-      graphs.each do |graph|
+      main_graphs.each do |graph|
+        num_threads = 1
+        while num_threads <= Etc.nprocessors
+          100.times do
+            sh "RAYON_NUM_THREADS=#{num_threads} cargo run --release --bin cch_preprocessing -- #{graph} > #{exp_dir}/preprocessing/$(date --iso-8601=seconds).json"
+          end
+          num_threads *= 2
+        end
+      end
+    end
+  end
+
+  task queries: ["#{exp_dir}/queries", osm_ger + live_travel_time] + main_graphs.map { |g|  g + 'cch_perm' } do
+    Dir.chdir "code/rust_road_router" do
+      main_graphs.each do |graph|
         ['travel_time', 'geo_distance'].each do |m|
           sh "cargo run --release --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{graph} #{m} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
           sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{graph} #{m} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
