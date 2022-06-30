@@ -254,7 +254,7 @@ namespace "exp" do
   end
 
   task partitioning: ["#{exp_dir}/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + main_graphs do
-    graphs.each do |graph|
+    main_graphs.each do |graph|
       10.times do
         Dir.chdir "code/rust_road_router" do
           filename = "#{exp_dir}/partitioning/" + `date --iso-8601=seconds`.strip + '.out'
