@@ -5,6 +5,8 @@ only_public = !ENV['ONLY_PUBLIC'].nil?
 
 file "paper/cchpp.pdf" => [
   "paper/cchpp.tex",
+  "paper/table/preprocessing.tex",
+  "paper/table/customization.tex",
 ] do
   Dir.chdir "paper" do
     sh "latexmk -pdf cchpp.tex"
@@ -19,6 +21,19 @@ end
 
 namespace "table" do
   directory "paper/table"
+
+  file "paper/table/preprocessing.tex" => FileList[
+    "#{exp_dir}/preprocessing/*.json",
+    "#{exp_dir}/partitioning/*.out",
+  ] + ["eval/preprocessing.py", "paper/table"] do
+    sh "eval/preprocessing.py"
+  end
+
+  file "paper/table/customization.tex" => FileList[
+    "#{exp_dir}/preprocessing/*.json",
+  ] + ["eval/customization.py", "paper/table"] do
+    sh "eval/customization.py"
+  end
 end
 
 osm_ger_src = 'https://download.geofabrik.de/europe/germany-200101.osm.pbf'
