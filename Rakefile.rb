@@ -174,9 +174,10 @@ namespace "exp" do
   directory "#{exp_dir}/queries"
 
   namespace "turns" do
-    task all: [:customization, :queries, :partitioning]
+    task all: [:customization, :queries, :partitioning, :preprocessing]
 
     directory "#{exp_dir}/turns/partitioning"
+    directory "#{exp_dir}/turns/preprocessing"
     directory "#{exp_dir}/turns/customization"
     directory "#{exp_dir}/turns/queries"
 
@@ -197,6 +198,25 @@ namespace "exp" do
             sh "echo '#{g_exp} #{hostname}' >> #{filename}"
             sh "./flow_cutter_cch_order.sh #{g_exp} #{Etc.nprocessors} >> #{filename}"
           end
+        end
+      end
+    end
+
+    task preprocessing: ["#{exp_dir}/turns/preprocessing"] + turn_graphs.map { |g, g_exp|  [g + 'cch_perm', g_exp + 'cch_perm', g_exp + 'cch_perm_cuts', g_exp + 'cch_perm_cuts_reorder'] }.flatten do
+      Dir.chdir "code/rust_road_router" do
+        turn_graphs.each do |g, g_exp|
+            # non-turn baseline
+          sh "cargo run --release --bin cch_preprocessing_by_features -- #{g} cch_perm > #{exp_dir}/turns/preprocessing/$(date --iso-8601=seconds).json"
+          # slow order on expanded graph
+          sh "cargo run --release --bin cch_preprocessing_by_features -- #{g_exp} cch_perm > #{exp_dir}/turns/preprocessing/$(date --iso-8601=seconds).json"
+          # cut order
+          sh "cargo run --release --bin cch_preprocessing_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/preprocessing/$(date --iso-8601=seconds).json"
+          # remove inf
+          sh "cargo run --release --features 'remove-inf' --bin cch_preprocessing_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/preprocessing/$(date --iso-8601=seconds).json"
+          # directed hierarchies
+          sh "cargo run --release --features 'directed' --bin cch_preprocessing_by_features -- #{g_exp} cch_perm_cuts > #{exp_dir}/turns/preprocessing/$(date --iso-8601=seconds).json"
+          # reordered separators
+          sh "cargo run --release --features 'directed' --bin cch_preprocessing_by_features -- #{g_exp} cch_perm_cuts_reorder > #{exp_dir}/turns/preprocessing/$(date --iso-8601=seconds).json"
         end
       end
     end
