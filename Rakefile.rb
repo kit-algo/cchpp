@@ -166,8 +166,9 @@ end
 
 namespace "exp" do
   desc "Run all experiments"
-  task all: [:preprocessing, :partitioning, :queries]
+  task all: [:preprocessing, :customization, :partitioning, :queries]
 
+  directory "#{exp_dir}/customization"
   directory "#{exp_dir}/preprocessing"
   directory "#{exp_dir}/partitioning"
   directory "#{exp_dir}/queries"
@@ -304,12 +305,20 @@ namespace "exp" do
   task preprocessing: ["#{exp_dir}/preprocessing"] + main_graphs.map { |g|  g + 'cch_perm' } do
     Dir.chdir "code/rust_road_router" do
       main_graphs.each do |graph|
+        100.times do
+          sleep 1
+          sh "RAYON_NUM_THREADS=#{num_threads} cargo run --release --bin cch_preprocessing -- #{graph} > #{exp_dir}/preprocessing/$(date --iso-8601=seconds).json"
+        end
+      end
+    end
+  end
+
+  task customization: ["#{exp_dir}/customization"] + main_graphs.map { |g|  g + 'cch_perm' } do
+    Dir.chdir "code/rust_road_router" do
+      main_graphs.each do |graph|
         num_threads = 1
         while num_threads <= Etc.nprocessors
-          100.times do
-            sleep 1
-            sh "RAYON_NUM_THREADS=#{num_threads} cargo run --release --bin cch_preprocessing -- #{graph} > #{exp_dir}/preprocessing/$(date --iso-8601=seconds).json"
-          end
+          sh "RAYON_NUM_THREADS=#{num_threads} cargo run --release --bin cch_customization_by_features -- #{graph} > #{exp_dir}/customization/$(date --iso-8601=seconds).json"
           num_threads *= 2
         end
       end
