@@ -8,7 +8,8 @@ file "paper/cchpp.pdf" => [
   "paper/table/preprocessing.tex",
   "paper/table/customization.tex",
   "paper/table/queries.tex",
-  "paper/fig/lazy_rphast_et_vs_dfs.pdf"
+  "paper/fig/lazy_rphast_et_vs_dfs.pdf",
+  "paper/fig/knn.pdf",
 ] do
   Dir.chdir "paper" do
     sh "latexmk -pdf cchpp.tex"
@@ -24,6 +25,12 @@ namespace "fig" do
     "#{exp_dir}/lazy_rphast/*.json",
   ] + ["eval/lazy_rphast_et_vs_dfs.py", "paper/fig"] do
     sh "eval/lazy_rphast_et_vs_dfs.py"
+  end
+
+  file "paper/fig/knn.pdf" => FileList[
+    "#{exp_dir}/knn/num_pois/*.json",
+  ] + ["eval/knn.py", "paper/fig"] do
+    sh "eval/knn.py"
   end
 end
 
