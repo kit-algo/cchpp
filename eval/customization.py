@@ -14,13 +14,15 @@ import re
 from shared import *
 
 base = "exp/"
-paths = glob.glob(base + "preprocessing/*.json")
+paths = glob.glob(base + "customization/*.json")
 data = [json.load(open(path)) for path in paths]
 
 runs = pd.DataFrame.from_records([{
-    **run,
-    'graph': path_to_graph(run['args'][1])
-} for run in data])
+  **algo,
+  'num_threads': run['num_threads'],
+  'graph': path_to_graph(run['args'][1]),
+  'hostname': run['hostname']
+} for run in data for algo in run['customizations']])
 
 runs['total_basic_customization_running_time_ms'] = runs['basic_customization_running_time_ms'] + runs['respecting_running_time_ms']
 runs['total'] = runs['total_basic_customization_running_time_ms'] + runs['perfect_customization_running_time_ms'] + runs['graph_build_running_time_ms']

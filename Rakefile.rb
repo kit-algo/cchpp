@@ -45,7 +45,7 @@ namespace "table" do
   end
 
   file "paper/table/customization.tex" => FileList[
-    "#{exp_dir}/preprocessing/*.json",
+    "#{exp_dir}/customization/*.json",
   ] + ["eval/customization.py", "paper/table"] do
     sh "eval/customization.py"
   end
