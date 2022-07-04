@@ -1066,7 +1066,7 @@ The removal of infinite edges also reduces the number of edges in the query sear
 \centering
 \caption{
 Performance of Dijkstra, CH, CRP and CCH in the compact model, in the edge-based model as is and with our optimizations (Edge-based*) on Europe with and without turns.
-Preprocessing was executed in parallel, customization and query sequentially.
+Preprocessing and customization were executed in parallel, queries sequentially.
 For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 }\label{tab:related_work}
 \begin{tabular}{l@{\hskip4pt}crrrlrrr}
@@ -1082,7 +1082,7 @@ For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 \multirow{2}{*}{CH}       & \multirow{2}{*}{\cite{DellingGPW17}} & \multirow{2}{*}{109} & \multirow{2}{*}{-} &      \multirow{2}{*}{0.11} & Edge-based &  1\,392 &       - &       0.19 \\
                           &                                      &                      &                    &                            &    Compact &  1\,753 &       - &       2.27 \\
 \addlinespace
-CRP                       & \cite{DellingGPW17}                  &                  654 &              10.55 &                       1.65 &    Compact &     654 &   11.12 &       1.67 \\
+CRP                       & \cite{DellingGPW17}                  &                  654 &               1.05 &                       1.65 &    Compact &     654 &    1.10 &       1.67 \\
 \addlinespace
 \multirow{2}{*}{CCH}      &                                      & \multirow{2}{*}{182} & \multirow{2}{*}{2.35} &   \multirow{2}{*}{0.19} & Edge-based &  2\,321 &   14.79 &       0.52 \\
                           &                                      &                      &                    &                            & Edge-based* &    256 &    8.18 &       0.31 \\
