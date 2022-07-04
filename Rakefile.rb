@@ -7,6 +7,7 @@ file "paper/cchpp.pdf" => [
   "paper/cchpp.tex",
   "paper/table/preprocessing.tex",
   "paper/table/customization.tex",
+  "paper/fig/lazy_rphast_et_vs_dfs.pdf"
 ] do
   Dir.chdir "paper" do
     sh "latexmk -pdf cchpp.tex"
@@ -17,6 +18,12 @@ task default: "paper/cchpp.pdf"
 
 namespace "fig" do
   directory "paper/fig"
+
+  file "paper/fig/lazy_rphast_et_vs_dfs.pdf" => FileList[
+    "#{exp_dir}/lazy_rphast/*.json",
+  ] + ["eval/lazy_rphast_et_vs_dfs.py", "paper/fig"] do
+    sh "eval/lazy_rphast_et_vs_dfs.py"
+  end
 end
 
 namespace "table" do
