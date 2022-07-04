@@ -5,6 +5,10 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning,decorations,decorations.pathmorphing}
 
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
 \newcommand{\getAngle}[2]{%
     \pgfmathanglebetweenpoints{\pgfpointanchor{#1}{center}}
     {\pgfpointanchor{#2}{center}}
@@ -914,6 +918,15 @@ TODO
 TODO
 }\label{tab:customization}
 \input{table/customization.tex}
+\end{table}
+
+\begin{table}
+\centering
+\setlength{\tabcolsep}{5pt}
+\caption{
+TODO
+}\label{tab:queries}
+\input{table/queries.tex}
 \end{table}
 
 \subparagraph{Edge-based model}

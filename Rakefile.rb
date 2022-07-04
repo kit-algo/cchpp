@@ -7,6 +7,7 @@ file "paper/cchpp.pdf" => [
   "paper/cchpp.tex",
   "paper/table/preprocessing.tex",
   "paper/table/customization.tex",
+  "paper/table/queries.tex",
   "paper/fig/lazy_rphast_et_vs_dfs.pdf"
 ] do
   Dir.chdir "paper" do
@@ -40,6 +41,12 @@ namespace "table" do
     "#{exp_dir}/preprocessing/*.json",
   ] + ["eval/customization.py", "paper/table"] do
     sh "eval/customization.py"
+  end
+
+  file "paper/table/queries.tex" => FileList[
+    "#{exp_dir}/queries/*.json",
+  ] + ["eval/queries.py", "paper/table"] do
+    sh "eval/queries.py"
   end
 end
 
