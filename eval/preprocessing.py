@@ -46,6 +46,8 @@ table = pd.merge(ordering, contraction, left_index=True, right_index=True)
 table.at['Europe', 'cont_graph'] = 15.5
 table.at['Europe', 'adj_array_s'] = 305.8
 
+table = table.reindex(['Stuttgart', 'Germany', 'Europe'])
+
 lines = table.round(1).to_latex(na_rep='--').split("\n")
 
 lines = lines[0:2] + [r'''{} &  Ordering & \multicolumn{3}{c}{Contraction} \\ \cmidrule(lr){3-5}
