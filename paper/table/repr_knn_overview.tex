@@ -1,0 +1,16 @@
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+& \multicolumn{5}{c}{$|P| = 2^{12}, |B| = 2^{20}$} & \multicolumn{5}{c}{$|P| = 2^{14}, |B| = |V|$} \\ \cmidrule(lr){2-6}\cmidrule(l){7-11}
+& \multicolumn{2}{c}{selection} & \multicolumn{3}{c}{query time [$\mu$s]} & \multicolumn{2}{c}{Selection} & \multicolumn{3}{c}{Query time [$\mu$s]} \\ \cmidrule(lr){2-3}\cmidrule(lr){4-6}\cmidrule(lr){7-8}\cmidrule(l){9-11}
+& Space & Time & \multicolumn{3}{c}{POIs to be reported} & Space & Time & \multicolumn{3}{c}{POIs to be reported} \\
+& [MiB] & [ms] & {$k = 1$} & {$k = 4$} & {$k = 8$} & [MiB] & {[ms]} & {$k = 1$} & {$k = 4$} & {$k = 8$} \\
+\midrule
+Dijkstra    &   2.1 &             0.1 & 712\,763.1 & 723\,458.3 & 730\,865.8 &   2.1 &             0.2 &   165.6 &   665.7 &  1\,346.0 \\
+CRP         &    -- &              -- &       -- &       -- &       -- &   0.0 &             8.0 &      -- &   640.0 &      -- \\
+CCH [orig]  &  68.7 &            12.5 &   3\,150.7 &   4\,704.7 &   6\,230.4 &  68.7 &            13.8 &   363.6 &   594.2 &   852.7 \\
+CCH         &   0.0 &             0.1 &    278.6 &    311.7 &    338.4 &   0.0 &             0.6 &   359.0 &   445.0 &   532.5 \\
+Lazy RPHAST &   0.0 &             0.0 &   3\,157.3 &   3\,157.6 &   3\,158.8 &   0.0 &             0.0 & 44\,441.2 & 44\,442.1 & 44\,451.0 \\
+BCCH        &  85.5 &           324.6 &     25.8 &     27.8 &     29.5 & 134.9 &          1\,327.3 &     7.4 &    12.5 &    16.6 \\
+\bottomrule
+\end{tabular}
+
