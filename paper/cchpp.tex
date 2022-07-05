@@ -306,9 +306,9 @@ Applying this idea recursively yields the whole separator decomposition.
 In the customization phase, a weight function $\ell$ is given and the corresponding weight function for the augmented graph $\ell^+$ is computed.
 
 The augmented graph is represented by $\gchu$.
-Note that each edge $uv in \echu$ also implicitly represents the reverse edge $vu$.
+Note that each edge $uv \in \echu$ also implicitly represents the reverse edge $vu$.
 We only store edges at the lower ranked endpoint.
-The weights of the edges are stored in two arrays $\lchu$ and $\rlchd$ accessible by the corresponding edge IDs from $\echu$, i.e.\ for $uv in \echu$, $\lcdu[uv] = \ell^+(uv)$ and $\rlcdd[uv] = \ell^+(vu)$.
+The weights of the edges are stored in two arrays $\lchu$ and $\rlchd$ accessible by the corresponding edge IDs from $\echu$, i.e.\ for $uv \in \echu$, $\lchu[uv] = \ell^+(uv)$ and $\rlchd[uv] = \ell^+(vu)$.
 Nonexistent edges are indicated through a weight of $\infty$.
 This allows us to represent a directed graph even though the topology is bidirected.
 
