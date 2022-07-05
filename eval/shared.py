@@ -12,8 +12,9 @@ def path_to_graph(path):
         'osm_ger': 'Germany',
         'osm_ger_exp': 'Germany',
         'europe': 'Europe',
-        'europe_turns': 'Europe',
-        'europe_turns_exp': 'Europe',
+        'europe_exp': 'Europe',
+        'europe_turns': 'Europe Turns',
+        'europe_turns_exp': 'Europe Turns',
     }[[x for x in path.split('/') if x != ''][-1]]
 
 

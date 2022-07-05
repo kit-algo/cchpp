@@ -68,6 +68,7 @@ typical_file = "#{data_dir}/mapbox/typical-tuesday-cleaned.csv"
 live_travel_time = 'live_travel_time'
 
 dimacs_eur = "#{data_dir}/europe/"
+dimacs_eur_exp = "#{data_dir}/europe_exp/"
 dimacs_eur_turns = "#{data_dir}/europe_turns/"
 dimacs_eur_turns_exp = "#{data_dir}/europe_turns_exp/"
 
@@ -81,7 +82,7 @@ chicago_exp = "#{data_dir}/chicago_exp/"
 graphs = [dimacs_eur, osm_ger]
 main_graphs = graphs + [stuttgart]
 
-turn_graphs = [[dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp], [london, london_exp], [chicago, chicago_exp]]
+turn_graphs = [[dimacs_eur, dimacs_eur_exp], [dimacs_eur_turns, dimacs_eur_turns_exp], [osm_ger, osm_ger_exp], [stuttgart, stuttgart_exp], [london, london_exp], [chicago, chicago_exp]]
 
 namespace "prep" do
   file osm_ger_src_file => data_dir do
@@ -114,6 +115,13 @@ namespace "prep" do
     Dir.chdir "code/rust_road_router" do
       sh "cargo run --release --bin turn_expand_osm -- #{osm_ger} #{osm_ger_exp}"
       sh "cargo run --release --bin write_unit_files -- #{osm_ger_exp} 1000 1"
+    end
+  end
+
+  directory dimacs_eur_exp
+  file dimacs_eur_exp => [dimacs_eur] do
+    Dir.chdir "code/rust_road_router" do
+      sh "cargo run --release --bin turn_expand_100s_uturn -- #{dimacs_eur} #{dimacs_eur_exp}"
     end
   end
 
