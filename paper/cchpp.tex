@@ -1131,6 +1131,17 @@ TODO
 }\label{fig:knn}
 \end{figure}
 
+\subsubsection{Alternative Routes}
+
+Our implementation of the penalty method reproduces the qualitative results reported in~\cite{kobitzsch2015alternative} (for random queries on DIMACS Europe we on average achieve a total distance of 2.93, an average distance of 1.04, 5.57 decision edges and a success rate of 98.7\% with 6.7 iterations).
+The average running times to compute an alternative graph are 1.37\,s on DIMACS Europe and 0.85\,s on OSM Germany.
+These running times are roughly one order of magnitude slower than the results achieved by Kobitzsch.
+The simpler penalty routes approach is much faster and takes only 156\,ms on DIMACS Europe and 66\,ms on OSM Germany.
+This is two orders of magnitude faster than the running times reported in~\cite{adgw-arrn-13} which is not surprising since their implementation uses an unaccelerated Dijkstra.
+Due to the advanced penalization schema, our average qualitative results differ from~\cite{adgw-arrn-13}: the success rate is with 96.8\% slightly higher, the UBS with around 9\% slightly worse, the sharing is with 42\% somewhat higher but the local optimality, which was the weakest point in the original approach, with 21\% significantly better.
+Finding these alternatives takes only 1.44 iterations on average.
+This makes CH-Potential-based penalty routes a simple and feasible practical approach to compute alternative routes.
+
 \section{Conclusion}
 \label{sec:conclusion}
 
