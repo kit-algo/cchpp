@@ -896,7 +896,9 @@ The number of vertices in the edge-based model is equal to the number of edges i
 Chicago    & TransportationNetworks &           13.0 &           39.0 &          135.3 & 100\,s U-Turns \\
 London     & PTV                    &           37.0 &           85.5 &          137.2 & Costs, Restrictions \\
 Stuttgart  & PTV                    &          109.5 &          252.1 &          394.2 & Costs, Restrictions \\
-Europe     & DIMACS                 &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
+Germany    & OSM                    &      16\,169.0 &      35\,442.2 &      54\,800.3 & Restrictions \\
+Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
+Europe     & DIMACS                 &      18\,010.2 &      42\,188.7 &     113\,953.6 & 100\,s U-Turns \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1181,6 +1183,27 @@ Adapting CCH to the compact model was much harder. We observed that CCH and the 
 \bibliography{References}
 
 \appendix
+\section{Additional Instances}
+
+\begin{table}
+\centering
+\caption{
+Road networks used for the evaluation our algorithms.
+The turns column contains the number of allowed turns.
+It corresponds to the number of edges in the edge-based model.
+The number of vertices in the edge-based model is equal to the number of edges in the original graph.
+}\label{tab:graphs}
+\begin{tabular}{llrrrl}
+\toprule
+           & Source                 &       Vertices &          Edges &          Turns & Turn           \\
+           &                        & [$\cdot 10^3$] & [$\cdot 10^3$] & [$\cdot 10^3$] & data           \\
+\midrule
+Chicago    & TransportationNetworks &           13.0 &           39.0 &          135.3 & 100\,s U-Turns \\
+London     & PTV                    &           37.0 &           85.5 &          137.2 & Costs, Restrictions \\
+Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Customization}
 
