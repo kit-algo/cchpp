@@ -11,6 +11,7 @@ file "paper/cchpp.pdf" => [
   "paper/fig/lazy_rphast_et_vs_dfs.pdf",
   "paper/fig/knn.pdf",
 
+  "paper/table/customization_ger.tex",
   "paper/table/repr_knn_overview.tex",
   "paper/fig/repr_knn_ball_size.pdf",
   "paper/fig/repr_knn_num_pois.pdf",
@@ -64,6 +65,12 @@ namespace "table" do
     "#{exp_dir}/customization/*.json",
   ] + ["eval/customization.py", "paper/table"] do
     sh "eval/customization.py"
+  end
+
+  file "paper/table/customization_ger.tex" => FileList[
+    "#{exp_dir}/customization/*.json",
+  ] + ["eval/customization_ger.py", "paper/table"] do
+    sh "eval/customization_ger.py"
   end
 
   file "paper/table/queries.tex" => FileList[
