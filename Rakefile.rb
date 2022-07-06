@@ -209,6 +209,7 @@ namespace "exp" do
   directory "#{exp_dir}/preprocessing"
   directory "#{exp_dir}/partitioning"
   directory "#{exp_dir}/queries"
+  directory "#{exp_dir}/baseline_queries"
 
   namespace "turns" do
     task all: [:customization, :queries, :partitioning, :preprocessing]
@@ -392,6 +393,19 @@ namespace "exp" do
       end
       sh "cargo run --release --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{osm_ger} #{live_travel_time} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
       sh "cargo run --release --no-default-features --features 'cch-disable-par' --bin cch_rand_queries_with_unpacking -- #{osm_ger} #{live_travel_time} > #{exp_dir}/queries/$(date --iso-8601=seconds).json"
+    end
+  end
+
+  task baseline_queries: ["#{exp_dir}/baseline_queries", osm_ger + live_travel_time] + main_graphs.map { |g|  g + 'cch_perm' } do
+    Dir.chdir "code/rust_road_router" do
+      main_graphs.each do |graph|
+        ['travel_time', 'geo_distance'].each do |m|
+          sh "cargo run --release --bin baseline_rand_queries -- #{graph} #{m} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
+          sh "cargo run --release --bin baseline_rand_queries -- #{graph} #{m} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
+        end
+      end
+      sh "cargo run --release --bin baseline_rand_queries -- #{osm_ger} #{live_travel_time} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
+      sh "cargo run --release --bin baseline_rand_queries -- #{osm_ger} #{live_travel_time} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
     end
   end
 end
