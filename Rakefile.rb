@@ -318,7 +318,7 @@ namespace "exp" do
       end
     end
 
-    task baseline_queries: ["#{exp_dir}/turns/baseline_queries"] + dimacs_eur_exp do
+    task baseline_queries: ["#{exp_dir}/turns/baseline_queries", dimacs_eur_exp] do
       Dir.chdir "code/rust_road_router" do
         sh "cargo run --release --bin baseline_rand_queries -- #{dimacs_eur_exp} > #{exp_dir}/turns/baseline_queries/$(date --iso-8601=seconds).json"
       end
