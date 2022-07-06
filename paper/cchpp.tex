@@ -929,92 +929,120 @@ TODO
 \input{table/queries.tex}
 \end{table}
 
+\begin{table}
+\centering
+\caption{
+TODO
+}\label{tab:related_work}
+\begin{tabular}{l@{\hskip4pt}crrrrrrrr}
+\toprule
+{}       &                     & \multicolumn{3}{c}{Travel time}                                        & \multicolumn{3}{c}{Distance}                  \\
+                                 \cmidrule(lr){3-5}                                                       \cmidrule(lr){6-8}
+{}       &                     &             Prepro.  &            Custom. &          Queries & Prepro. & Custom. &   Queries \\
+{}       &                     &                 [s]  &                [s] &             [ms] &     [s] &     [s] &      [ms] \\
+\midrule
+Dijkstra &                     &                    - &                  - &        1\,061.52 &       - &       - &  2\,674.72 \\
+CH       & \cite{DellingGPW17} &                  109 &                  - &             0.11 &  1\,392 &       - &       0.87 \\
+CRP      & \cite{DellingGPW17} &                  654 &               1.05 &             1.65 &     654 &    1.04 &       1.91 \\
+CCH      &                     &                  367 &               1.25 &             0.14 &     367 &    1.25 &       0.18 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subparagraph{Edge-based model}
 
-\begin{table}[tb]
-\parbox{.5\linewidth}{
-\setlength{\tabcolsep}{2.8pt}
+\begin{table}
 \centering
 \caption{
-Performance results for different contraction orders on each graph.
-We report the number of edges in the augmented graph and running times for preprocessing, customization, and queries.
-\emph{Orig.} denotes the baseline on the nonturn/compact graph.
-The other three orders are for the edge-based model.
-\emph{Deri.} indicates the derived order, \emph{Edge} the order computed on the expanded graph, \emph{Cut} the order obtained by ordering edges in the original graph.
-}\label{tab:orders}
-\begin{tabular}{llrrrr}
-\toprule
-       & &      CCH Edges & Prepro. & Custom. &    Query \\
-       & & [$\cdot 10^3$] &     [s] &    [ms] & [$\mu$s] \\
-\midrule
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Chicago}}}
-& Orig. &            118 &                  0.2 &                               6 &              18 \\
-& Deri. &           1\,439 &                  0.2 &                             155 &             150 \\
-& Edge &            819 &                  1.1 &                              50 &              60 \\
-& Cut &            852 &                  0.2 &                              51 &              57 \\
-\addlinespace
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{London}}}
-& Orig. &            182 &                  0.3 &                               7 &              20 \\
-& Deri. &           1\,199 &                  0.3 &                              85 &             111 \\
-& Edge &            767 &                  1.1 &                              37 &              52 \\
-& Cut &            840 &                  0.3 &                              40 &              51 \\
-\addlinespace
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Stuttgart}}}
-& Orig. &            362 &                  0.5 &                              11 &              16 \\
-& Deri. &           2\,145 &                  0.6 &                              94 &              79 \\
-& Edge &           1\,607 &                  2.4 &                              58 &              41 \\
-& Cut &           1\,680 &                  0.9 &                              60 &              37 \\
-\addlinespace
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Europe}}}
-& Orig. &          53\,521 &                182.3 &                            2\,349 &             187 \\
-& Deri. &         414\,615 &                202.1 &                           29\,787 &            1\,561 \\
-& Edge &         311\,213 &               2\,321.1 &                           14\,787 &             524 \\
-& Cut &         331\,794 &                256.3 &                           14\,751 &             577 \\
-\bottomrule
-\end{tabular}
-}
-\quad
-\parbox{.45\linewidth}{
-\setlength{\tabcolsep}{3pt}
-\centering
-\caption{
-Performance impact of different optimizations on each graph.
-We report the number of triangles enumerated during the customization as well as customization and query running times.
-All configurations use a cut-based contraction order.
-Directed hierarchies imply the removal of infinite shortcuts and reordering separator vertices builds on both directed hierarchies and the removal of infinite shortcuts.
-}\label{tab:opt}
-\begin{tabular}{llrrr}
-\toprule
- & &      Triangles & Custom. &    Query \\
- & & [$\cdot 10^6$] &    [ms] & [$\mu$s] \\
-\midrule
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Chicago}}}
-& None &           21.6 &                              51 &              57 \\
-& Infinity &           19.6 &                              48 &              56 \\
-& Directed &           13.3 &                              28 &              41 \\
-& Reorder &            8.2 &                              20 &              31 \\
-\addlinespace
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{London}}}
-& None &           12.9 &                              40 &              51 \\
-& Infinity &           11.0 &                              36 &              51 \\
-& Directed &            7.7 &                              23 &              40 \\
-& Reorder &            4.8 &                              18 &              30 \\
-\addlinespace
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Stuttgart}}}
-& None &           11.4 &                              60 &              37 \\
-& Infinity &            8.5 &                              53 &              37 \\
-& Directed &            6.2 &                              36 &              30 \\
-& Reorder &            4.4 &                              32 &              22 \\
-\addlinespace
-\parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Europe}}}
-& None &         3\,955.7 &                           14\,751 &             577 \\
-& Infinity &         3\,413.6 &                           13\,942 &             582 \\
-& Directed &         2\,319.7 &                            9\,590 &             407 \\
-& Reorder &         1\,514.2 &                            8\,180 &             306 \\
-\bottomrule
-\end{tabular}
-}
+TODO
+}\label{tab:turn_ops}
+\input{table/turn_ops.tex}
 \end{table}
+
+% \begin{table}[tb]
+% \parbox{.5\linewidth}{
+% \setlength{\tabcolsep}{2.8pt}
+% \centering
+% \caption{
+% Performance results for different contraction orders on each graph.
+% We report the number of edges in the augmented graph and running times for preprocessing, customization, and queries.
+% \emph{Orig.} denotes the baseline on the nonturn/compact graph.
+% The other three orders are for the edge-based model.
+% \emph{Deri.} indicates the derived order, \emph{Edge} the order computed on the expanded graph, \emph{Cut} the order obtained by ordering edges in the original graph.
+% }\label{tab:orders}
+% \begin{tabular}{llrrrr}
+% \toprule
+%        & &      CCH Edges & Prepro. & Custom. &    Query \\
+%        & & [$\cdot 10^3$] &     [s] &    [ms] & [$\mu$s] \\
+% \midrule
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Chicago}}}
+% & Orig. &            118 &                  0.2 &                               6 &              18 \\
+% & Deri. &           1\,439 &                  0.2 &                             155 &             150 \\
+% & Edge &            819 &                  1.1 &                              50 &              60 \\
+% & Cut &            852 &                  0.2 &                              51 &              57 \\
+% \addlinespace
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{London}}}
+% & Orig. &            182 &                  0.3 &                               7 &              20 \\
+% & Deri. &           1\,199 &                  0.3 &                              85 &             111 \\
+% & Edge &            767 &                  1.1 &                              37 &              52 \\
+% & Cut &            840 &                  0.3 &                              40 &              51 \\
+% \addlinespace
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Stuttgart}}}
+% & Orig. &            362 &                  0.5 &                              11 &              16 \\
+% & Deri. &           2\,145 &                  0.6 &                              94 &              79 \\
+% & Edge &           1\,607 &                  2.4 &                              58 &              41 \\
+% & Cut &           1\,680 &                  0.9 &                              60 &              37 \\
+% \addlinespace
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Europe}}}
+% & Orig. &          53\,521 &                182.3 &                            2\,349 &             187 \\
+% & Deri. &         414\,615 &                202.1 &                           29\,787 &            1\,561 \\
+% & Edge &         311\,213 &               2\,321.1 &                           14\,787 &             524 \\
+% & Cut &         331\,794 &                256.3 &                           14\,751 &             577 \\
+% \bottomrule
+% \end{tabular}
+% }
+% \quad
+% \parbox{.45\linewidth}{
+% \setlength{\tabcolsep}{3pt}
+% \centering
+% \caption{
+% Performance impact of different optimizations on each graph.
+% We report the number of triangles enumerated during the customization as well as customization and query running times.
+% All configurations use a cut-based contraction order.
+% Directed hierarchies imply the removal of infinite shortcuts and reordering separator vertices builds on both directed hierarchies and the removal of infinite shortcuts.
+% }\label{tab:opt}
+% \begin{tabular}{llrrr}
+% \toprule
+%  & &      Triangles & Custom. &    Query \\
+%  & & [$\cdot 10^6$] &    [ms] & [$\mu$s] \\
+% \midrule
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Chicago}}}
+% & None &           21.6 &                              51 &              57 \\
+% & Infinity &           19.6 &                              48 &              56 \\
+% & Directed &           13.3 &                              28 &              41 \\
+% & Reorder &            8.2 &                              20 &              31 \\
+% \addlinespace
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{London}}}
+% & None &           12.9 &                              40 &              51 \\
+% & Infinity &           11.0 &                              36 &              51 \\
+% & Directed &            7.7 &                              23 &              40 \\
+% & Reorder &            4.8 &                              18 &              30 \\
+% \addlinespace
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Stuttgart}}}
+% & None &           11.4 &                              60 &              37 \\
+% & Infinity &            8.5 &                              53 &              37 \\
+% & Directed &            6.2 &                              36 &              30 \\
+% & Reorder &            4.4 &                              32 &              22 \\
+% \addlinespace
+% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Europe}}}
+% & None &         3\,955.7 &                           14\,751 &             577 \\
+% & Infinity &         3\,413.6 &                           13\,942 &             582 \\
+% & Directed &         2\,319.7 &                            9\,590 &             407 \\
+% & Reorder &         1\,514.2 &                            8\,180 &             306 \\
+% \bottomrule
+% \end{tabular}
+% }
+% \end{table}
 
 We evaluate the impact of different contraction orders on the performance of the different phases and the size of the augmented graph.
 Preprocessing includes both computing the order and the contraction but is dominated by the ordering.
@@ -1068,7 +1096,7 @@ The removal of infinite edges also reduces the number of edges in the query sear
 Performance of Dijkstra, CH, CRP and CCH in the compact model, in the edge-based model as is and with our optimizations (Edge-based*) on Europe with and without turns.
 Preprocessing and customization were executed in parallel, queries sequentially.
 For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
-}\label{tab:related_work}
+}\label{tab:related_work_turns}
 \begin{tabular}{l@{\hskip4pt}crrrlrrr}
 \toprule
 {}                        &                                      & \multicolumn{3}{c}{No turns}                                           & \multicolumn{4}{c}{Turns}                  \\
@@ -1084,8 +1112,9 @@ For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 \addlinespace
 CRP                       & \cite{DellingGPW17}                  &                  654 &               1.05 &                       1.65 &    Compact &     654 &    1.10 &       1.67 \\
 \addlinespace
-\multirow{2}{*}{CCH}      &                                      & \multirow{2}{*}{221} & \multirow{2}{*}{1.43} &   \multirow{2}{*}{0.15} & Edge-based &  2\,758 &    7.31 &       0.26 \\
-                          &                                      &                      &                    &                            & Edge-based* &    277 &    4.05 &       0.34 \\
+\multirow{2}{*}{CCH}      &                                      & \multirow{2}{*}{367} & \multirow{2}{*}{1.25} &   \multirow{2}{*}{0.14} & Edge-based &  3\,817 &    7.80 &       0.25 \\
+                          &                                      &                      &                    &                            & Edge-based* &    437 &    4.48 &       0.30 \\
+CCH-Pot.                  &                                      &                      &                    &                            & Edge-based &     367 &    1.25 &       2.69 \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -147,13 +147,14 @@ table = table[['combined_cch_edge_count', 'total_phase1_s', 'total_basic_customi
 lines = add_latex_big_number_spaces(table.to_latex(na_rep='--')).split('\n')
 
 lines = lines[:2] + [
-r' &         &     CCH Edges & Preprocessing & \multicolumn{2}{c}{Customization [ms]} & \multicolumn{2}{c}{Query [$\mu$s]} \\ \cmidrule(lr){5-6} \cmidrule(lr){7-8}',
-r' &         & [$\dot 10^3$] &           [s] & Basic & Perfect &  Basic & Perfect \\',
+r' &         &     CCH Edges & Prepro. & \multicolumn{2}{c}{Customization [ms]} & \multicolumn{2}{c}{Query [$\mu$s]} \\ \cmidrule(lr){5-6} \cmidrule(lr){7-8}',
+r' &         & [$\cdot 10^3$] &   [s] & Basic & Perfect &  Basic & Perfect \\',
 ] + lines[4:]
 output = '\n'.join(lines) + '\n'
-output.replace('Stuttgart', r'\multirow{7}{*}{\rotatebox[origin=c]{90}{Stuttgart}}')
-output.replace('Germany', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Germany}}')
-output.replace('Europe', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Europe}}')
+output = output.replace('nan', '--')
+output = output.replace('Stuttgart', r'\multirow{7}{*}{\rotatebox[origin=c]{90}{Stuttgart}}')
+output = output.replace('Germany', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Germany}}')
+output = output.replace('Europe', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Europe}}')
 
 with open("paper/table/turn_opts.tex", 'w') as f:
   f.write(output)

@@ -10,6 +10,7 @@ file "paper/cchpp.pdf" => [
   "paper/table/queries.tex",
   "paper/fig/lazy_rphast_et_vs_dfs.pdf",
   "paper/fig/knn.pdf",
+  "paper/table/turn_opts.tex",
 
   "paper/table/customization_ger.tex",
   "paper/table/repr_knn_overview.tex",
@@ -77,6 +78,15 @@ namespace "table" do
     "#{exp_dir}/queries/*.json",
   ] + ["eval/queries.py", "paper/table"] do
     sh "eval/queries.py"
+  end
+
+  file "paper/table/turn_opts.tex" => FileList[
+    "#{exp_dir}/turns/partitioning/*.out",
+    "#{exp_dir}/turns/preprocessing/*.json",
+    "#{exp_dir}/turns/customization/*.json",
+    "#{exp_dir}/turns/queries/*.json",
+  ] + ["eval/turn_opts.py", "paper/table"] do
+    sh "eval/turn_opts.py"
   end
 
   file "paper/table/repr_knn_overview.tex" => FileList[
@@ -401,10 +411,8 @@ namespace "exp" do
       main_graphs.each do |graph|
         ['travel_time', 'geo_distance'].each do |m|
           sh "cargo run --release --bin baseline_rand_queries -- #{graph} #{m} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
-          sh "cargo run --release --bin baseline_rand_queries -- #{graph} #{m} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
         end
       end
-      sh "cargo run --release --bin baseline_rand_queries -- #{osm_ger} #{live_travel_time} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
       sh "cargo run --release --bin baseline_rand_queries -- #{osm_ger} #{live_travel_time} > #{exp_dir}/baseline_queries/$(date --iso-8601=seconds).json"
     end
   end
