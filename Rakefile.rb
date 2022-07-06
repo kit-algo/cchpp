@@ -228,6 +228,7 @@ namespace "exp" do
     directory "#{exp_dir}/turns/preprocessing"
     directory "#{exp_dir}/turns/customization"
     directory "#{exp_dir}/turns/queries"
+    directory "#{exp_dir}/turns/baseline_queries"
 
     task partitioning: ["#{exp_dir}/turns/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + turn_graphs.flatten do
       hostname = `hostname`
@@ -314,6 +315,12 @@ namespace "exp" do
           # CCHPot
           sh "cargo run --release --features 'cch-disable-par' --bin cchpot_turns_with_pre_exp -- #{g} cch_perm #{g_exp} > #{exp_dir}/turns/queries/$(date --iso-8601=seconds).json"
         end
+      end
+    end
+
+    task baseline_queries: ["#{exp_dir}/turns/baseline_queries"] + dimacs_eur_exp do
+      Dir.chdir "code/rust_road_router" do
+        sh "cargo run --release --bin baseline_rand_queries -- #{dimacs_eur_exp} > #{exp_dir}/turns/baseline_queries/$(date --iso-8601=seconds).json"
       end
     end
   end
