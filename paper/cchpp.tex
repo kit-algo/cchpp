@@ -1219,9 +1219,21 @@ TODO
 
 \begin{figure}
 \centering
-\includegraphics[width=\linewidth]{fig/lazy_rphast_inc.pdf}
+\includegraphics[width=\linewidth]{fig/lazy_rphast_et_vs_dfs_ger.pdf}
 \caption{
 TODO
+}\label{fig:et_vs_dfs_ger}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=\linewidth]{fig/lazy_rphast_inc.pdf}
+\caption{
+Average running times of incremental Lazy RPHAST on CH and CCH while querying $|S| = 2^{14}$ from a ball of varying size $|B|$ on Germany excluding selection times.
+The upper figure contains the total elapsed running time.
+The lower figure contains the averaged running time per source, i.e. $y/x$ from the upper figure.
+Note the different y-axis scales and units.
+% compute 3
 }\label{fig:inc_ch_vs_cch}
 \end{figure}
 
@@ -1229,7 +1241,10 @@ TODO
 \centering
 \includegraphics[width=\linewidth]{fig/lazy_rphast_many_to_one_both.pdf}
 \caption{
-TODO
+Running times of (C)CH-based Lazy RPHAST for many-to-one queries with $|S| = 2^{14}$ sources picked from a ball of varying size $|B|$.
+The running time includes the selection and the time to compute all distances.
+% compute 3
+% graph names
 }\label{fig:many_to_one_ch_vs_cch}
 \end{figure}
 
@@ -1243,6 +1258,14 @@ TODO
 \end{table}
 
 \section{Nearest-Neighbor}
+
+\begin{figure}
+\centering
+\includegraphics[width=\linewidth]{fig/knn_ger.pdf}
+\caption{
+TODO
+}\label{fig:knn_ger}
+\end{figure}
 
 \begin{table}
 \setlength{\tabcolsep}{3pt}

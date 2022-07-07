@@ -16,6 +16,8 @@ file "paper/cchpp.pdf" => [
   "paper/table/repr_knn_overview.tex",
   "paper/fig/repr_knn_ball_size.pdf",
   "paper/fig/repr_knn_num_pois.pdf",
+  "paper/fig/lazy_rphast_et_vs_dfs_ger.pdf",
+  "paper/fig/knn_ger.pdf",
 ] do
   Dir.chdir "paper" do
     sh "latexmk -pdf cchpp.tex"
@@ -33,10 +35,22 @@ namespace "fig" do
     sh "eval/lazy_rphast_et_vs_dfs.py"
   end
 
+  file "paper/fig/lazy_rphast_et_vs_dfs_ger.pdf" => FileList[
+    "#{exp_dir}/lazy_rphast/*.json",
+  ] + ["eval/lazy_rphast_et_vs_dfs_ger.py", "paper/fig"] do
+    sh "eval/lazy_rphast_et_vs_dfs_ger.py"
+  end
+
   file "paper/fig/knn.pdf" => FileList[
     "#{exp_dir}/knn/num_pois/*.json",
   ] + ["eval/knn.py", "paper/fig"] do
     sh "eval/knn.py"
+  end
+
+  file "paper/fig/knn_ger.pdf" => FileList[
+    "#{exp_dir}/knn/num_pois/*.json",
+  ] + ["eval/knn_ger.py", "paper/fig"] do
+    sh "eval/knn_ger.py"
   end
 
   file "paper/fig/repr_knn_ball_size.pdf" => FileList[
