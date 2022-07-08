@@ -1086,8 +1086,9 @@ With the elimination tree variant, it is sufficient to check the parent in the e
 However, there is one exception:
 When the $B$ is sufficiently large and many sources are queried, the DFS-based variant becomes marginally faster.
 This is because the path to the elimination tree root might contain vertices which are not reachable in the CCH search space because some edges were removed during the perfect customization.
-% confirm experimentally
-Usually, the amount of unnecessarily vertices visited by the elimination tree variant is very small in comparison to the total work and is thus more than compensated by the more efficient implementation.
+We confirmed this experimentally by running the algorithms without perfect customization $G^+$.
+There, the DFS traverses the same vertices as the elimination tree-based variant and the effect disappears.
+Usually however, the amount of unnecessarily vertices visited by the elimination tree variant is very small in comparison to the total work and is thus more than compensated by the more efficient implementation.
 We therefore conclude that the elimination tree-based Lazy RPHAST variant is the better default choice on CCH.
 In terms of absolute numbers, the average time per distance to compute starts in a similar range as standard (C)CH (around 0.1\,ms) queries and quickly becomes faster as more distances are queried.
 When computing more than $2^{10}$ distance to the same target on a small ball $B$, the average time per distance even becomes faster than HL queries (roughly 0.5\,$\mu$s).
@@ -1099,7 +1100,7 @@ When computing more than $2^{10}$ distance to the same target on a small ball $B
 \centering
 \includegraphics[width=\linewidth]{fig/knn.pdf}
 \caption{
-TODO
+Average running times for different nearest-neighbor algorithms on Europe to find the $k=4$ closest targets from a POI set of varying size.
 }\label{fig:knn}
 \end{figure}
 
