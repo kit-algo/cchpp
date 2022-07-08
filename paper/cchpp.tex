@@ -846,39 +846,52 @@ Thus, we can also support turn costs and restrictions in combination with custom
 \label{sec:experiments}
 
 In this section, we present our experimental evaluation.
-Our benchmark machine runs openSUSE Leap 15.1 (kernel 4.12.14), and has 192\,GiB of DDR4-2666 RAM and two Intel Xeon Gold 6144 CPUs, each of which has eight cores clocked at 3.5\,Ghz and 8~$\times$~64\,KiB of L1, 8~$\times$~1\,MiB of L2, and 24.75\,MiB of shared L3 cache.
-Hyperthreading was disabled and parallel experiments use 16 threads.
-Our code is written in C++ and compiled with GCC~8.2.1 using optimization level 3.
+Our primary benchmark machine runs openSUSE Leap 15.3 (kernel 5.3.18), and has 64\,GiB of DDR3-1600 RAM and two Intel Xeon E5-2670 CPUs, each of which has eight cores clocked at 2.6\,Ghz and 8~$\times$~64\,KiB of L1, 8~$\times$~256\,KiB of L2, and 20\,MiB of shared L3 cache.
+We use this machine to ensure the comparability of our results to previous works~\cite{DibbeltSW16,BuchholdSW19} which were also evaluated on this computer.
+Additionally, using this machine allows a rough comparison with the results on CRP presented in~\cite{DellingGPW17}.\footnote{
+According to the comparison methodology from~\cite{BastDGMPSWW16} (see \url{https://i11www.iti.kit.edu/~pajor/survey/}), the machine used in~\cite{DellingGPW17} (SPA-2) is about 20\% slower than ours (compute11).
+We reran the benchmark for our machine and obtained a score of 38914\,ms which is somewhat slower than the previously reported 36582\,ms.
+This is likely due to the mitigations for side-channel attacks utilizing speculative execution such as Meltdown and Spectre.
+Compared to this score, SPA-2 would only be about 12\% slower than our our machine.
+Generally, these scaling factors have to be interpreted very carefully.
+They are obtained from one-to-all Dijkstra searches on continental-sized road networks.
+This kind of benchmark heavily emphasizes memory bandwidth while neglecting other critical factors such as CPU frequency and cache size and speed.
+We can only conclude that our machine and SPA-2 yield running times in the same order of magnitude and that our machine is probably in most cases slightly faster.
+}
+Since the machine is at the time of writing already almost a decade old, we expect our results to be a fairly conservative approximation of the performance which can be expected when deploying these algorithms today.
+The appendix contains additional results on newer machines.
+% compute4
 
-We implement our algorithms on top of the existing open-source libraries.
-For CCH, we use the implementation from RoutingKit\footnote{\url{https://github.com/RoutingKit/RoutingKit}}.
-We extend it by implementing customization for directed hierarchies and the removal of infinite edges.
-For the computation of contraction orders, we use InertialFlowCutter\footnote{\url{https://github.com/kit-algo/InertialFlowCutter}}~\cite{GottesburenHUW19} and implement the computation of cut-based orders and the reordering of separator vertices.
-We publish our extensions to these projects as pull requests on Github\footnote{\url{https://github.com/RoutingKit/RoutingKit/pull/77}}\footnote{\url{https://github.com/kit-algo/InertialFlowCutter/pull/6}}.
-RoutingKit includes an implementation of InertialFlow~\cite{SchildS15} for the computation of contraction orders.
-We perform experiments with both InertialFlow and InertialFlowCutter.
-As InertialFlow is outperformed by InertialFlowCutter, our evaluation focuses on contraction orders obtained by InertialFlowCutter.
+We implemented our algorithms in Rust\footnote{
+The code for this paper and all experiments is available at \url{https://github.com/kit-algo/rust_road_router} % TODO correct link
+} and compiled them with \texttt{rustc 1.64.0-nightly (830880640 2022-06-28)} in the release profile with the \texttt{target-cpu=native} option.
+For the computation of contraction orders, we use InertialFlowCutter (IFC)\footnote{\url{https://github.com/kit-algo/InertialFlowCutter}}~\cite{GottesburenHUW19}.
+As shown in the extensive evaluation in~\cite{GottesburenHUW19}, IFC currently achieves the best contraction order quality while being only about two times slower than InertialFlow~\cite{SchildS15}, the fastest approach with reasonable quality.
+We extend IFC with the computation of cut-based orders and the reordering of separator vertices.
+These extensions were published as a pull request on Github\footnote{\url{https://github.com/kit-algo/InertialFlowCutter/pull/6}} and have since been merged into the project.
+For the OSM import, we use the implementation from RoutingKit\footnote{\url{https://github.com/RoutingKit/RoutingKit}}.
+InertialFlowCutter and RoutingKit are written in C++ and were compiled with GCC~10.3.0 using optimization level 3.
 
-\subparagraph{Inputs and Methodology}
-
-We perform experiments on several graphs with synthetic and real turn cost data.
+\subparagraph{Inputs}
+We perform experiments on three road networks from different sources and of different scales.
 See Table~\ref{tab:graphs} for an overview.
-We use three city-sized instances of the road networks of Chicago~\cite{TNTP}, London and Stuttgart.
-The London and Stuttgart instances were provided by PTV\footnote{\url{https://ptvgroup.com}} with real turn restrictions and cost data.
-Our biggest benchmark instance is a graph of the road network of Western Europe made publicly available for the Ninth DIMACs implementation challenge~\cite{DemetrescuGJ09} with synthetic turn costs.
-% We use two variants of the Europe instance: one with synthetic turn costs and one using proprietary turn restrictions also provided by PTV.
-To generate synthetic turn costs, we assign a travel time of 100\,s to all U-turns.
+For turn costs, we use both synthetic and real-world turn cost data.
+Our smallest instance is a city-sized network of the region around Stuttgart (Baden Württemberg, Germany) and was provided by PTV\footnote{\url{https://ptvgroup.com}} with real turn restrictions and cost data.
+The second network, Germany, is derived from an early 2020 snapshot of OpenStreetMap (OSM)\footnote{\url{https://download.geofabrik.de/europe/germany-200101.osm.pbf}} and was converted into a routing graph using RoutingKit.
+The OSM data includes some turn restrictions information but is not as extensive as the proprietary turn data by PTV.
+Still, this instance should allow to reproduce most of our results on publicly available data.
+For this instance, we also have proprietary traffic data provided by Mapbox\footnote{\url{https://mapbox.com}}.
+The data also includes a traffic snapshot from Friday 2019/08/02 15:41 and contains observed live speeds for the links between 320\,k OSM node ID pairs.
+Our biggest benchmark instance is a graph of the road network of Western Europe made available for the Ninth DIMACS implementation challenge~\cite{DemetrescuGJ09}.
+% TODO only little bigger than OSM Ger
+This is our main instance.
+To generate synthetic turn costs for Europe, we assign a travel time of 100\,s to all U-turns.
 This number does not model a realistic time but a heavy penalty.
 All other turns are free.
 This model has been suggested in~\cite{DellingGPW17} and found to approximate real-world turn cost effects on the routing sufficiently well.
-
-We perform experiments on the biggest strongly connected component of edge-based model representation of each graph and the induced subgraph on the original graph.
-Preprocessing running times are averages over 10 runs, customization running times averages over 100 runs.
-We utilize parallelization only for the preprocessing.
-All other phases are run sequentially.
-For the queries, we perform 1\,000\,000 point-to-point queries where both source and target are edges drawn uniformly at random.
-In the edge-based model, these edges correspond to vertices, which we select as source and target.
-For the original and compact graph, we use the head vertices of these edges.
+% We use three city-sized instances of the road networks of Chicago~\cite{TNTP}, London and Stuttgart.
+% The London and Stuttgart instances were provided by PTV\footnote{\url{https://ptvgroup.com}} with real turn restrictions and cost data.
+% We use two variants of the Europe instance: one with synthetic turn costs and one using proprietary turn restrictions also provided by PTV.
 
 \begin{table}
 \centering
@@ -893,65 +906,189 @@ The number of vertices in the edge-based model is equal to the number of edges i
            & Source                 &       Vertices &          Edges &          Turns & Turn           \\
            &                        & [$\cdot 10^3$] & [$\cdot 10^3$] & [$\cdot 10^3$] & data           \\
 \midrule
-Chicago    & TransportationNetworks &           13.0 &           39.0 &          135.3 & 100\,s U-Turns \\
-London     & PTV                    &           37.0 &           85.5 &          137.2 & Costs, Restrictions \\
 Stuttgart  & PTV                    &          109.5 &          252.1 &          394.2 & Costs, Restrictions \\
 Germany    & OSM                    &      16\,169.0 &      35\,442.2 &      54\,800.3 & Restrictions \\
-Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
 Europe     & DIMACS                 &      18\,010.2 &      42\,188.7 &     113\,953.6 & 100\,s U-Turns \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subparagraph{Methodology}
+For the computation of the contraction order, we perform the partitioning 10 times and report the average running time.
+% fixed seed because focus on CCH and not ordering
+Contraction and customization running times are obtained as averages over 100 runs.
+For the queries, we perform 1\,000\,000 point-to-point queries where both source and target are vertices drawn uniformly at random.
+We utilize parallelization for all phases except the queries.
+
+\subsection{CCH Performance}
 
 \begin{table}
 \centering
 \setlength{\tabcolsep}{5pt}
 \caption{
-TODO
+Running time in seconds of the metric-independent preprocessing algorithms.
+Orders were computed with IFC.
+For contraction, we compare our own chordal completion algorithm against the contraction graph approach and the naive baseline as reported in~\cite{DibbeltSW16}.
+Our results and the numbers from~\cite{DibbeltSW16} were obtained on the same machine.
+% TODO order
 }\label{tab:preprocessing}
 \input{table/preprocessing.tex}
 \end{table}
 
+Table~\ref{tab:preprocessing} depicts running times of the metric-independent preprocessing.
+The ordering, performed by IFC, is two orders of magnitude slower than the contraction (with chordal completion) and thus dominates the running time.
+Still, computing the contraction order of a continental-sized network takes only about six minutes thanks to the efficient parallelization of IFC.
+This is faster than the ordering running of a classical non-customizable CH~\cite{GeisbergerSSV12}.\footnote{
+The CH preprocessing is typically performed sequentially which makes this a somewhat unfair comparison.
+Parallelization approaches for CH preprocessing have been described in the context of time-dependent CH~\cite{TODO}.
+However, these approaches do not scale very well in the classical setting.
+Further, to the best of our knowledge, there is neither a publication on parallelized CH preprocessing in the time-independent case nor any open source implementation.
+}
+For contraction algorithms, we only have running times of competing algorithms on Europe.
+Still, the speed-ups are so significant that the we can safely conclude that the chordal completion algorithm is the best approach for the contraction phase.
+Chordal completion is two orders of magnitude faster than the naive baseline, one order of magnitude faster than the engineered contraction graph approach, and also much simpler to implement.\footnote{See \url{https://github.com/RoutingKit/RoutingKit/pull/75/commits/16de474b2c3} where we replace the contraction graph approach in RoutingKit with the chordal completion algorithm.}
+On Stuttgart, the running time is in the single digit milliseconds.
+In practice, the running time of the chordal completion is so fast that it disappears behind I/O, allocation of memory for the graph data and other algorithmically uninteresting parts of the implementation.
+
 \begin{table}
 \centering
 \setlength{\tabcolsep}{5pt}
 \caption{
-TODO
+Running times and parallelization effectiveness of different steps of the customization phase on Stuttgart and Europe in comparison with the baseline results reported in~\cite{DibbeltSW16} and the improvements proposed in~\cite{BuchholdSW19}.
+Our results and the numbers from~\cite{DibbeltSW16,BuchholdSW19} were obtained on the same machine.
+% TODO order
 }\label{tab:customization}
 \input{table/customization.tex}
 \end{table}
 
+In Table~\ref{tab:customization}, we investigate the performance of the customization algorithms on Stuttgart and Europe.
+The results for Germany can be found in Table~\ref{tab:customization_ger} in the appendix.
+Considering the total running time, we observe that our batched triangle relaxation based customization is in the sequential case roughly two times faster than the results observed in~\cite{BuchholdSW19} and about four times faster than the baseline~\cite{DibbeltSW16}.
+With full parallelization with 16 threads, the picture remains similar on Europe.
+However, on the much smaller Stuttgart instance, the difference between our approach and the approach from~\cite{BuchholdSW19} becomes much smaller.
+Interestingly, the performance differences are fueled primarily by the construction step where our approach is sequentially four to five times faster than~\cite{BuchholdSW19}.
+One important reason for this is that the batched triangle relaxation allows us to record unpacking information during the basic customization without any synchronization issues.
+Thus, in contrast to~\cite{BuchholdSW19}, we do not need to enumerate lower triangle during the construction of the minimal augmented graph.
+We observe that our algorithms utilize additional threads reasonably well, as long as the instances are sufficiently large.
+On Europe, the total speedup with 8 threads is 5.8 and 8.6 with 16 threads.
+In contrast, on Stuttgart, our best achieved speedup is 4.2 with 8 threads.
+Adding more threads starts to gradually degrade the performance.
+In terms of absolute numbers our approach enables customization of continental-sized instances in about 10\,s sequentially and a little more than a second fully parallelized.
+This finally brings CCH customization running times in a similar range than CRP customization running time (10.55\,s sequentially, 1.05\,s with 12 cores).
+% When only applying the basic customization, CRP customization times can even be undercut.
+
 \begin{table}
 \centering
 \setlength{\tabcolsep}{5pt}
 \caption{
-TODO
+Search space statistics and running times for elimination tree queries on different graphs and weight functions.
+We evaluate queries on $G^+$ with only the basic customization and on $G^*$ after performing the perfect customization.
+The number of visited vertices remains the same because elimination tree queries always traverse the full path to the root.
+The number of edges indicates the combined number of edges relaxed by both directions.
+The final column contains the number of vertices on the unpacked shortest path.
+All numbers are averages over 1\,000\,000 random queries.
 }\label{tab:queries}
 \input{table/queries.tex}
 \end{table}
 
+Table~\ref{tab:queries} depicts elimination tree query running times and search space statistics for different networks and weight functions.
+As shown in~\cite{BuchholdSW19}, elimination tree queries with all optimizations proposed in~\cite{BuchholdSW19} outperform Dijkstra-based CCH queries across all query distances.
+Therefore, we focus on elimination tree queries and do not perform any Dijkstra-based queries.
+
+We observe that with only the basic customization, the number of relaxed edges and the distance query running time are very robust against different weight functions.
+The only changes are due to the pruning criterion~\cite{BuchholdSW19} which sometimes allows to skip relaxing certain edges.
+However, as we use random, i.e.\  long range queries for this experiments, this happens only seldomly and has little influence on the results.
+Despite Germany being a slightly smaller graph, queries take somewhat longer (around 440\,$\mu$s compared to around 300\,$\mu$s on Europe).
+This is because the greater modelling detail of the OSM-based Germany instance and corresponds to the number of vertices on the obtained paths and the search space size.
+Path unpacking times also correlate with the number of vertices on the result paths, are in the same order of magnitude than the distance computation times and often slightly faster.
+
+Running the perfect customization significantly improves query performance in all aspects.
+The number of relaxed edges is at least halved and the query running times are also roughly halved.
+Path unpacking times also improve, but not as much.
+This is because for path unpacking, the work to perform remains the same, and only the cache locality improves.
+These improvements are greater in weight functions with a more pronounced hierarchy.
+The different weight functions on Germany illustrate this clearly.
+Stuttgart behaves differently because it is a city network which is much less hierarchical to begin with.
+
+Note that our path unpacking times are significantly faster than numbers reported in~\cite{DibbeltSW16}.
+There, an unpacking time of 253\,$\mu$s is reported for Europe with travel times and 524\,$\mu$s with geo distances (both without perfect customization).
+Our unpacking times are faster because we store explicit edge unpacking information with each edge while the implementation of~\cite{DibbeltSW16} enumerates lower triangles for unpacking.
+However, maintaining this unpacking information during the customization costs some performance, specifically in the construction of $G^*$ step.
+Thus, there is a trade-off between path unpacking times and customization times.
+If a path unpacking times are not critical and a slowdown of a factor of two is tolerable, the customization times could be accelerated further.
+
 \begin{table}
 \centering
 \caption{
-TODO
+Running times of each phase for Dijkstra's algorithm, CH, CRP and CCH on Europe with different weight functions.
+Preprocessing and customization were executed in parallel, queries sequentially.
+For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 }\label{tab:related_work}
 \begin{tabular}{l@{\hskip4pt}crrrrrrrr}
 \toprule
-{}       &                     & \multicolumn{3}{c}{Travel time}                                        & \multicolumn{3}{c}{Distance}                  \\
-                                 \cmidrule(lr){3-5}                                                       \cmidrule(lr){6-8}
-{}       &                     &             Prepro.  &            Custom. &          Queries & Prepro. & Custom. &   Queries \\
-{}       &                     &                 [s]  &                [s] &             [ms] &     [s] &     [s] &      [ms] \\
+{}       &                     & \multicolumn{3}{c}{Travel time}                              & \multicolumn{3}{c}{Geo distance}   \\
+                                 \cmidrule(lr){3-5}                                             \cmidrule(lr){6-8}
+{}       &                     &             Prepro.  &            Custom. &          Queries &              Prepro. & Custom. &    Queries \\
+{}       &                     &                 [s]  &                [s] &             [ms] &                  [s] &     [s] &       [ms] \\
 \midrule
-Dijkstra &                     &                    - &                  - &        1\,061.52 &       - &       - &  2\,674.72 \\
-CH       & \cite{DellingGPW17} &                  109 &                  - &             0.11 &  1\,392 &       - &       0.87 \\
-CRP      & \cite{DellingGPW17} &                  654 &               1.05 &             1.65 &     654 &    1.04 &       1.91 \\
-CCH      &                     &                  367 &               1.25 &             0.14 &     367 &    1.25 &       0.18 \\
+Dijkstra &                     &                    - &                  - &        2\,359.14 &                    - &       - &  1\,972.93 \\
+CH       & \cite{DellingGPW17} &                  109 &                  - &             0.11 &                  726 &       - &       0.87 \\
+CRP      & \cite{DellingGPW17} &                  654 &               1.05 &             1.65 &                  654 &    1.04 &       1.91 \\
+\addlinespace
+CCH $G^+$ &                    & \multirow{2}{*}{367} &               0.58 &             0.30 & \multirow{2}{*}{367} &    0.58 &       0.30 \\
+CCH $G^*$ &                    &                      &               1.25 &             0.14 &                      &    1.25 &       0.18 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subparagraph{Edge-based model}
+Table~\ref{tab:related_work} depicts our results in comparison to other related routing algorithms on the most prominent research benchmark instance, the DIMACS Europe graph.
+Dijkstra's algorithm, the non-accelerated baseline, requires no preprocessing but has prohibitively slow query running times.
+CH~\cite{GeisbergerSSV12}, the non-customizable predecessor and foundation to CCH achieves very fast queries on travel times.
+In this case, the (parallelized) preprocessing is 3.4 times faster than the CCH preprocessing, and queries are also marginally faster.
+However, CH is not robust against weight functions with a weaker hierarchy.
+Both preprocessing and query times degrade significantly when applied to a geo distance weight function.
+In contrast, CRP~\cite{DellingGPW17} is very robust against different weight functions and can introduce arbitrary weight functions with a customization phasing taking only around a second.
+However, queries are somewhat slower than CH queries.
+With CCH, we achieve robustness against different weight functions while retaining most of the CH query performance.
+The optimizations proposed in this work and~\cite{BuchholdSW19} accelerate the CCH customization such that the basic customization is now slightly faster than the CRP customization.
+Queries with only the basic customization are around 5 times faster than CRP queries.
+For even faster queries, the perfect customization can be applied.
+Then, the total customization time is marginally slower than CRP but queries are an order of magnitude faster and basically as fast as classical CH queries.
+Nevertheless, CRP still has some advantages over CCH.
+First, the space consumption per customized weight function is smaller for CRP.
+Second, CRP has been extended to more extended problem settings and appeared as more flexible.
+In the following we will investigate how CCH perform in these extended problem settings.
+
+\subsection{Point-of-Interest Queries}
+
+\begin{figure}
+\centering
+\includegraphics[width=\linewidth]{fig/lazy_rphast_et_vs_dfs.pdf}
+\caption{
+TODO
+}\label{fig:et_vs_dfs}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=\linewidth]{fig/knn.pdf}
+\caption{
+TODO
+}\label{fig:knn}
+\end{figure}
+
+\subsection{Alternative Routes}
+
+Our implementation of the penalty method reproduces the qualitative results reported in~\cite{kobitzsch2015alternative} (for random queries on DIMACS Europe we on average achieve a total distance of 2.93, an average distance of 1.04, 5.57 decision edges and a success rate of 98.7\% with 6.7 iterations).
+The average running times to compute an alternative graph are 1.37\,s on DIMACS Europe and 0.85\,s on OSM Germany.
+These running times are roughly one order of magnitude slower than the results achieved by Kobitzsch.
+The simpler penalty routes approach is much faster and takes only 156\,ms on DIMACS Europe and 66\,ms on OSM Germany.
+This is two orders of magnitude faster than the running times reported in~\cite{adgw-arrn-13} which is not surprising since their implementation uses an unaccelerated Dijkstra.
+Due to the advanced penalization schema, our average qualitative results differ from~\cite{adgw-arrn-13}: the success rate is with 96.8\% slightly higher, the UBS with around 9\% slightly worse, the sharing is with 42\% somewhat higher but the local optimality, which was the weakest point in the original approach, with 21\% significantly better.
+Finding these alternatives takes only 1.44 iterations on average.
+This makes CH-Potential-based penalty routes a simple and feasible practical approach to compute alternative routes.
+
+\subsection{Turn Costs}
 
 \begin{table}
 \centering
@@ -1106,7 +1243,7 @@ For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 {}                        &                                      &             Prepro.  &            Custom. &                    Queries & Repr.      & Prepro. & Custom. &   Queries \\
 {}                        &                                      &                 [s]  &                [s] &                       [ms] &            &     [s] &     [s] &      [ms] \\
 \midrule
-\multirow{2}{*}{Dijkstra} &                                      &   \multirow{2}{*}{-} & \multirow{2}{*}{-} & \multirow{2}{*}{1\,061.52} & Edge-based &       - &       - &  2\,674.72 \\
+\multirow{2}{*}{Dijkstra} &                                      &   \multirow{2}{*}{-} & \multirow{2}{*}{-} & \multirow{2}{*}{2\,359.14} & Edge-based &       - &       - &  6\,225.60 \\
                           &                                      &                      &                    &                            &    Compact &       - &       - & 12\,699.32 \\
 \addlinespace
 \multirow{2}{*}{CH}       & \multirow{2}{*}{\cite{DellingGPW17}} & \multirow{2}{*}{109} & \multirow{2}{*}{-} &      \multirow{2}{*}{0.11} & Edge-based &  1\,392 &       - &       0.19 \\
@@ -1145,34 +1282,6 @@ However, both techniques require significantly more space, and we choose not to 
 % CRP slow but robust
 % customization for both CRP and CCH can be speed up further by parallelization.
 
-
-\begin{figure}
-\centering
-\includegraphics[width=\linewidth]{fig/lazy_rphast_et_vs_dfs.pdf}
-\caption{
-TODO
-}\label{fig:et_vs_dfs}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=\linewidth]{fig/knn.pdf}
-\caption{
-TODO
-}\label{fig:knn}
-\end{figure}
-
-\subsubsection{Alternative Routes}
-
-Our implementation of the penalty method reproduces the qualitative results reported in~\cite{kobitzsch2015alternative} (for random queries on DIMACS Europe we on average achieve a total distance of 2.93, an average distance of 1.04, 5.57 decision edges and a success rate of 98.7\% with 6.7 iterations).
-The average running times to compute an alternative graph are 1.37\,s on DIMACS Europe and 0.85\,s on OSM Germany.
-These running times are roughly one order of magnitude slower than the results achieved by Kobitzsch.
-The simpler penalty routes approach is much faster and takes only 156\,ms on DIMACS Europe and 66\,ms on OSM Germany.
-This is two orders of magnitude faster than the running times reported in~\cite{adgw-arrn-13} which is not surprising since their implementation uses an unaccelerated Dijkstra.
-Due to the advanced penalization schema, our average qualitative results differ from~\cite{adgw-arrn-13}: the success rate is with 96.8\% slightly higher, the UBS with around 9\% slightly worse, the sharing is with 42\% somewhat higher but the local optimality, which was the weakest point in the original approach, with 21\% significantly better.
-Finding these alternatives takes only 1.44 iterations on average.
-This makes CH-Potential-based penalty routes a simple and feasible practical approach to compute alternative routes.
-
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -1183,28 +1292,6 @@ Adapting CCH to the compact model was much harder. We observed that CCH and the 
 \bibliography{References}
 
 \appendix
-\section{Additional Instances}
-
-\begin{table}
-\centering
-\caption{
-Road networks used for the evaluation our algorithms.
-The turns column contains the number of allowed turns.
-It corresponds to the number of edges in the edge-based model.
-The number of vertices in the edge-based model is equal to the number of edges in the original graph.
-}\label{tab:graphs}
-\begin{tabular}{llrrrl}
-\toprule
-           & Source                 &       Vertices &          Edges &          Turns & Turn           \\
-           &                        & [$\cdot 10^3$] & [$\cdot 10^3$] & [$\cdot 10^3$] & data           \\
-\midrule
-Chicago    & TransportationNetworks &           13.0 &           39.0 &          135.3 & 100\,s U-Turns \\
-London     & PTV                    &           37.0 &           85.5 &          137.2 & Costs, Restrictions \\
-Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \section{Customization}
 
 \begin{table}
@@ -1292,4 +1379,21 @@ TODO
 }\label{fig:knn_ball_size}
 \end{figure}
 
+\section{Turn Costs}
+\begin{table}
+\centering
+\caption{
+Additional road networks used for the evaluation our turn cost optimizations.
+}\label{tab:add_turn_graphs}
+\begin{tabular}{llrrrl}
+\toprule
+           & Source                 &       Vertices &          Edges &          Turns & Turn           \\
+           &                        & [$\cdot 10^3$] & [$\cdot 10^3$] & [$\cdot 10^3$] & data           \\
+\midrule
+Chicago    & TransportationNetworks &           13.0 &           39.0 &          135.3 & 100\,s U-Turns \\
+London     & PTV                    &           37.0 &           85.5 &          137.2 & Costs, Restrictions \\
+Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
+\bottomrule
+\end{tabular}
+\end{table}
 \end{document}
