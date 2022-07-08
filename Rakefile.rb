@@ -206,6 +206,14 @@ namespace "prep" do
         sh "./flow_cutter_cch_order.sh #{graph} #{Etc.nprocessors}"
       end
     end
+
+    directory graph + "travel_time_ch"
+    file graph + "travel_time_ch" => ["code/compute_ch/build/compute_ch", graph + 'lower_bound'] do
+      sh("code/compute_ch/build/compute_ch #{graph}/first_out #{graph}/head #{graph}/lower_bound " +
+          "#{graph}/travel_time_ch/order " +
+          "#{graph}/travel_time_ch/forward_first_out #{graph}/travel_time_ch/forward_head #{graph}/travel_time_ch/forward_weight " +
+          "#{graph}/travel_time_ch/backward_first_out #{graph}/travel_time_ch/backward_head #{graph}/travel_time_ch/backward_weight")
+    end
   end
 
   turn_graphs.each do |graph, graph_exp|
@@ -370,7 +378,7 @@ namespace "exp" do
   namespace "lazy_rphast" do
     directory "#{exp_dir}/lazy_rphast"
 
-    task ball_size: ["#{exp_dir}/lazy_rphast"] + graphs.map { |g|  g + 'cch_perm' } do
+    task ball_size: ["#{exp_dir}/lazy_rphast"] + graphs.map { |g|  g + 'cch_perm' } + graphs.map { |g|  g + 'travel_time_ch' } do
       Dir.chdir "code/rust_road_router" do
         graphs.each do |g|
           sh "cargo run --release --features cch-disable-par --bin lazy_rphast_inc_cch_vs_elim_tree -- #{g} > #{exp_dir}/lazy_rphast/$(date --iso-8601=seconds).json"
@@ -441,11 +449,17 @@ end
 
 namespace 'build' do
   task :osm_import => "code/osm_import/build/import_osm"
-
   directory "code/osm_import/build"
-
   file "code/osm_import/build/import_osm" => ["code/osm_import/build", "code/osm_import/src/bin/import_osm.cpp"] do
     Dir.chdir "code/osm_import/build/" do
+      sh "cmake -DCMAKE_BUILD_TYPE=Release .. && make"
+    end
+  end
+
+  task :compute_ch => "code/compute_ch/build/compute_ch"
+  directory "code/compute_ch/build"
+  file "code/compute_ch/build/compute_ch" => ["code/compute_ch/build", "code/compute_ch/src/bin/compute_contraction_hierarchy_and_order.cpp"] do
+    Dir.chdir "code/compute_ch/build/" do
       sh "cmake -DCMAKE_BUILD_TYPE=Release .. && make"
     end
   end
