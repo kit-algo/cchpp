@@ -250,8 +250,8 @@ We store these parents in an array $\mathtt{ET}$ of length $n$.
 \label{sec:reconstruct_sep_tree}
 
 CCH vertex importance orderings are based on a separator decomposition of the input network.
-This decomposition is very useful for several CCH algorithms, for example for the parallelization of the customization or k-nearest-neighbor searches.
-However, some blackbox partitioners such as FlowCutter or InertialFlowCutter will only return the vertex order and not the underlying separator decomposition.
+This decomposition is very useful for several CCH algorithms, for example for the parallelization of the customization or $k$-nearest-neighbor searches.
+However, blackbox partitioners such as FlowCutter or InertialFlowCutter return only the vertex order but provide no easy access to the separator decomposition.
 Luckily, we can reconstruct a decomposition efficiently from the elimination tree.
 
 % forest?
