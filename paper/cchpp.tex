@@ -1152,139 +1152,42 @@ This makes CH-Potential-based penalty routes a simple and feasible practical app
 \begin{table}
 \centering
 \caption{
-TODO
-}\label{tab:turn_ops}
-\input{table/turn_ops.tex}
+Performance of different CCH variants and optimizations to support turn costs.
+We report the number of directed edges in the augmented graph as well as running times for each phase.
+Directed hierarchies imply the removal of infinite shortcuts and reordering separator vertices builds on both directed hierarchies and the removal of infinite shortcuts and all three variants used a cut order.
+% parallelization
+}\label{tab:turn_opts}
+\input{table/turn_opts.tex}
 \end{table}
 
-% \begin{table}[tb]
-% \parbox{.5\linewidth}{
-% \setlength{\tabcolsep}{2.8pt}
-% \centering
-% \caption{
-% Performance results for different contraction orders on each graph.
-% We report the number of edges in the augmented graph and running times for preprocessing, customization, and queries.
-% \emph{Orig.} denotes the baseline on the nonturn/compact graph.
-% The other three orders are for the edge-based model.
-% \emph{Deri.} indicates the derived order, \emph{Edge} the order computed on the expanded graph, \emph{Cut} the order obtained by ordering edges in the original graph.
-% }\label{tab:orders}
-% \begin{tabular}{llrrrr}
-% \toprule
-%        & &      CCH Edges & Prepro. & Custom. &    Query \\
-%        & & [$\cdot 10^3$] &     [s] &    [ms] & [$\mu$s] \\
-% \midrule
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Chicago}}}
-% & Orig. &            118 &                  0.2 &                               6 &              18 \\
-% & Deri. &           1\,439 &                  0.2 &                             155 &             150 \\
-% & Edge &            819 &                  1.1 &                              50 &              60 \\
-% & Cut &            852 &                  0.2 &                              51 &              57 \\
-% \addlinespace
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{London}}}
-% & Orig. &            182 &                  0.3 &                               7 &              20 \\
-% & Deri. &           1\,199 &                  0.3 &                              85 &             111 \\
-% & Edge &            767 &                  1.1 &                              37 &              52 \\
-% & Cut &            840 &                  0.3 &                              40 &              51 \\
-% \addlinespace
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Stuttgart}}}
-% & Orig. &            362 &                  0.5 &                              11 &              16 \\
-% & Deri. &           2\,145 &                  0.6 &                              94 &              79 \\
-% & Edge &           1\,607 &                  2.4 &                              58 &              41 \\
-% & Cut &           1\,680 &                  0.9 &                              60 &              37 \\
-% \addlinespace
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Europe}}}
-% & Orig. &          53\,521 &                182.3 &                            2\,349 &             187 \\
-% & Deri. &         414\,615 &                202.1 &                           29\,787 &            1\,561 \\
-% & Edge &         311\,213 &               2\,321.1 &                           14\,787 &             524 \\
-% & Cut &         331\,794 &                256.3 &                           14\,751 &             577 \\
-% \bottomrule
-% \end{tabular}
-% }
-% \quad
-% \parbox{.45\linewidth}{
-% \setlength{\tabcolsep}{3pt}
-% \centering
-% \caption{
-% Performance impact of different optimizations on each graph.
-% We report the number of triangles enumerated during the customization as well as customization and query running times.
-% All configurations use a cut-based contraction order.
-% Directed hierarchies imply the removal of infinite shortcuts and reordering separator vertices builds on both directed hierarchies and the removal of infinite shortcuts.
-% }\label{tab:opt}
-% \begin{tabular}{llrrr}
-% \toprule
-%  & &      Triangles & Custom. &    Query \\
-%  & & [$\cdot 10^6$] &    [ms] & [$\mu$s] \\
-% \midrule
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Chicago}}}
-% & None &           21.6 &                              51 &              57 \\
-% & Infinity &           19.6 &                              48 &              56 \\
-% & Directed &           13.3 &                              28 &              41 \\
-% & Reorder &            8.2 &                              20 &              31 \\
-% \addlinespace
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{London}}}
-% & None &           12.9 &                              40 &              51 \\
-% & Infinity &           11.0 &                              36 &              51 \\
-% & Directed &            7.7 &                              23 &              40 \\
-% & Reorder &            4.8 &                              18 &              30 \\
-% \addlinespace
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Stuttgart}}}
-% & None &           11.4 &                              60 &              37 \\
-% & Infinity &            8.5 &                              53 &              37 \\
-% & Directed &            6.2 &                              36 &              30 \\
-% & Reorder &            4.4 &                              32 &              22 \\
-% \addlinespace
-% \parbox[t]{3mm}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Europe}}}
-% & None &         3\,955.7 &                           14\,751 &             577 \\
-% & Infinity &         3\,413.6 &                           13\,942 &             582 \\
-% & Directed &         2\,319.7 &                            9\,590 &             407 \\
-% & Reorder &         1\,514.2 &                            8\,180 &             306 \\
-% \bottomrule
-% \end{tabular}
-% }
-% \end{table}
+We evaluate the impact of incorporating turn costs into CCH.
+Table~\ref{tab:turn_opts} depicts the results.
+The simplest way to integrate turn costs is to use CCH-Potentials, i.e.\ use Lazy RPHAST on CCH without turns as an A* potential.
+In this case, queries are a bit more than an order of magnitude slower but still in the single digit milliseconds.
+This is fast enough for interactive applications.
+The advantage of this approach is that preprocessing and customization remain unchanged.
 
-We evaluate the impact of different contraction orders on the performance of the different phases and the size of the augmented graph.
-Preprocessing includes both computing the order and the contraction but is dominated by the ordering.
-Table~\ref{tab:orders} depicts the results.
-Incorporating turns has a significant impact on the running time of all phases of CCH.
-The number of edges in the hierarchy grows at least by a factor of four to up to more than an order of magnitude.
-The derived order performs the worst on all instances.
-On Chicago, the customization slows down by a factor of 25.
-On the other instances, the slowdown is about an order of magnitude.
-The slowdown for queries is not as strong but still significant (by a factor of 5 to 8).
-Only the preprocessing stays comparatively fast as it is dominated by the order computation, which can run on the unmodified original graph.
-We conclude that this approach is not feasible.
-
-With the edge-based order, we achieve a better order at the cost of additional preprocessing time.
-The slowdown compared to a nonturn CCH is reduced to a factor of five for the customization phase, for queries to 2.5 to 3.
-However, preprocessing takes up to an order of magnitude longer.
-Orders computed by InertialFlow are generally worse than InertialFlowCutter orders (the customization is a factor 1.3 to 1.5 slower) and on graphs of the edge-based model this difference becomes even more pronounced (factor 1.3 to 2.8).
-Consequentially, we focus on InertialFlowCutter orders.
-
-Cut orders achieve the best trade-off between the running times of the different phases.
-Customization and query performance is roughly the same as with an edge-based order.
-The preprocessing slowdown is well below a factor of two for all graphs.
-InertialFlowCutter has certain optimizations which find optimal vertex orders for certain subclasses of graphs.
-We did not implement these optimizations for cut-based orders.
+In contrast, the fastest queries can be achieved when applying preprocessing and customization without any modification to the expanded graph (see the ``Naive exp.'' rows).
+With the perfect customization, queries are only a factor of around two slower than queries without turn costs.
+However, this comes at the cost of a significant slowdown for both preprocessing phases of up to a factor of 12.
+Our optimizations from Section~\ref{TODO} help to reduce this slowdown without sacrificing as much query performance as CCH-Potentials.
+Computing cut orders on the original graph rather than a vertex separator order on the expanded graph, reduces the preprocessing slowdown from an order of magnitude to at most 1.7.
+The resulting order is marginally worse which leads to around 5\% more shortcuts and roughly corresponding slowdowns in customization and query running times.
+The loss in quality is likely due to certain optimizations in InertialFlowCutter for optimal vertex orders for certain subclasses of graphs which we did not implement for cut-based orders.
 We expect that implementing them would close the gap in quality between edge-based and cut-based orders.
-% why slower than orig?
-%   because need more cuts
-%   + missing IFC optimization magic
-
-In Table~\ref{tab:opt}, we report performance results depending on the additional optimizations applied.
-All configurations use cut-based orders.
-% Thus, preprocessing times are the same for all configurations.
-We also report the number of triangles enumerated during the customization as the triangle enumeration dominates the customization running time.
-The impact of the optimizations is similar across all instances.
-All optimizations combined roughly achieve a speedup of two on both customization and queries.
+The remaining optimizations help to further accelerate the customization by removing edges which can be guaranteed to be unnecessary as part of the preprocessing.
+Identifying these edges costs some extra preprocessing time but computing the order is still the dominant factor.
+All optimizations combined roughly achieve a speedup of 1.8 for the customization.
 Removing undirected infinite shortcuts alone yields only small improvements.
 Combining this with directed hierarchies and removing all directed infinite shortcuts has a much bigger impact.
 This impact can be further amplified by reordering separator vertices, which produces even more infinite shortcuts.
-Note that the work per triangle is different for directed hierarchies.
-For undirected hierarchies, each triangle will be enumerated once and both directed triangles will be relaxed at once.
-For directed hierarchies, however, both directions will be enumerated separately.
-Thus, for undirected hierarchies, the number of relaxation operations is twice the number of enumerated triangles and the reduction achieved by directed hierarchies even greater.
-It is noteworthy that even though our optimizations primarily aim for the customization running time, we also achieve a significant speedup for query running times.
-The removal of infinite edges also reduces the number of edges in the query search space.
+It is noteworthy that even though our optimizations primarily aim for the customization running time, we also achieve a significant speedup for query running times on $G^+$.
+In that case, the removal of infinite edges also reduces the number of edges in the query search space.
+However, with the perfect customization and queries on $G^*$, we observe the opposite:
+each optimization is slightly detrimental to query running times.
+This is because removing more edges as part of the preprocessing leads to the perfect customization missing more and more edges to remove.
+Thus, the search space on $G^*$ becomes larger with each additional optimization.
+Nevertheless, the perfect customization still yields significant query speedups on the larger graphs of up to 1.7.
 
 \subparagraph{Comparison with related work}
 
@@ -1310,28 +1213,28 @@ For CH and CRP we list unscaled results as reported in \cite{DellingGPW17}.
 \addlinespace
 CRP                       & \cite{DellingGPW17}                  &                  654 &               1.05 &                       1.65 &    Compact &     654 &    1.10 &       1.67 \\
 \addlinespace
-\multirow{2}{*}{CCH}      &                                      & \multirow{2}{*}{367} & \multirow{2}{*}{1.25} &   \multirow{2}{*}{0.14} & Edge-based &  3\,817 &    7.80 &       0.25 \\
+\multirow{2}{*}{CCH $G^+$}&                                      & \multirow{2}{*}{367} & \multirow{2}{*}{0.59} &   \multirow{2}{*}{0.30} & Edge-based &  3\,817 &    3.17 &       0.91 \\
+                          &                                      &                      &                    &                            & Edge-based* &    437 &    1.82 &       0.45 \\
+\multirow{2}{*}{CCH $G^*$}&                                      & \multirow{2}{*}{367} & \multirow{2}{*}{1.25} &   \multirow{2}{*}{0.14} & Edge-based &  3\,817 &    7.80 &       0.25 \\
                           &                                      &                      &                    &                            & Edge-based* &    437 &    4.48 &       0.30 \\
 CCH-Pot.                  &                                      &                      &                    &                            & Edge-based &     367 &    1.25 &       2.69 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:related_work} summarizes our results and depicts them in comparison to running times achieved by competing approaches as reported in~\cite{DellingGPW17}.
+Table~\ref{tab:related_work} summarizes our results on turn costs and depicts them in comparison to running times achieved by competing approaches as reported in~\cite{DellingGPW17}.
 The experiments were performed on the publicly available Europe instance which is the only instance also considered in related work.
-Our experiments were conducted on a newer machine.
-Thus, the absolute numbers are not perfectly comparable.
-Using the comparison methodology from~\cite{BastDGMPSWW16}, the numbers from~\cite{DellingGPW17} should scaled down by a factor of 0.79.
 We observe that incorporating turns has a strong impact on all algorithms except CRP.
 Dijkstra becomes at least 2.5 times slower.
 CH queries remain comparatively fast (at least on the edge-based model), but preprocessing slows down by more than an order of magnitude.
 The CRP nonturn variant is realized as free turns in the compact model which explains why incorporating turns leaves the performance unaffected.
 % By using the simplified model, CRP could likely be accelerated further.
-While CCH achieves faster running times than CRP in all phases on nonturn graphs, without our modifications, it is outperformed by CRP on graphs with turns.
-However, when using cut-based orders and all optimizations, CCH again outperforms CRP.
-CCH with the compact model is outperformed by the optimized edge-based variant in all phases.
-Note that both the CRP and CCH customization times can be further decreased through parallelization and by two related techniques known as microcode~\cite{DellingW13} (for CRP) and triangle preprocessing~\cite{DibbeltSW16} (for CCH).
+While CCH without turns achieves faster running times than CRP in all phases, without our modifications, it is outperformed by CRP on graphs with turns.
+However, when using cut-based orders and all optimizations, CCH again outperforms CRP in all phases except the customization where CCH are a factor 1.6 or more slower depending on the configuration.
+We do not list CCH on the compact model here, as it was shown to be outperformed by the optimized edge-based variant in all phases~\cite{TODO}.
+Note that both the CRP and CCH customization times can be further decreased by two related techniques known as microcode~\cite{DellingW13} (for CRP) and triangle preprocessing~\cite{DibbeltSW16} (for CCH).
 However, both techniques require significantly more space, and we choose not to use them to keep the space requirement low.
+We conclude that while CCH may not be as robust against turn costs as CRP, achieving competitive performance with CCH with turn costs is possible.
 
 % dijkstra scaling factors (2.5-3)
 % turn dijkstra slowdown (2-3)
@@ -1339,7 +1242,6 @@ However, both techniques require significantly more space, and we choose not to 
 %   queries not as bad, at least for edge based.
 %   compact even worse, also for queries, but less space
 % CRP slow but robust
-% customization for both CRP and CCH can be speed up further by parallelization.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -1393,7 +1295,7 @@ The experiment was conducted on our main benchmark machine for Chapter~\ref{chap
 \caption{
 TODO
 % compute 3
-}\label{tab:cchpot_ops}
+}\label{tab:cchpot_opts}
 \input{table/cchpot_opts.tex}
 \end{table}
 
@@ -1440,7 +1342,7 @@ TODO
 \begin{table}
 \centering
 \caption{
-Additional road networks used for the evaluation our turn cost optimizations.
+Additional road networks used for the evaluation of our turn cost optimizations.
 }\label{tab:add_turn_graphs}
 \begin{tabular}{llrrrl}
 \toprule
@@ -1452,5 +1354,16 @@ London     & PTV                    &           37.0 &           85.5 &         
 Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\,371.3 & 100\,s U-Turns \\
 \bottomrule
 \end{tabular}
+\end{table}
+
+\begin{table}
+\centering
+\caption{
+Performance of different CCH variants and optimizations to support turn costs.
+We report the number of directed edges in the augmented graph and running times for each phase.
+Directed hierarchies imply the removal of infinite shortcuts and reordering separator vertices builds on directed hierarchies and the removal of infinite shortcuts and all three variants used a cut order.
+% compute4
+}\label{tab:turn_opts_ext}
+\input{table/turn_opts_ext.tex}
 \end{table}
 \end{document}

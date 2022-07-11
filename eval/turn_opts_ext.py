@@ -146,6 +146,8 @@ table = table[cols] \
     .reindex(['no turns', 'cch pot', 'naive expanded', 'cut order', 'remove inf', 'directed', 'sep reorder'], level=1) \
     .rename(index={ 'no turns': 'No turns', 'naive expanded': 'Naive exp.', 'cut order': 'Cut order', 'remove inf': 'Infinity', 'directed': 'Directed', 'sep reorder': 'Reorder', 'cch pot': 'CCH-Pot.' })
 
+table = table.rename(index={'Europe': 'Europe_'})
+
 lines = add_latex_big_number_spaces(table.to_latex(na_rep='--')).split('\n')
 
 lines = lines[:2] + [
@@ -160,7 +162,7 @@ output = output.replace('London', r'\addlinespace \multirow{7}{*}{\rotatebox[ori
 output = output.replace('Stuttgart', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Stuttgart}}')
 output = output.replace('Germany', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Germany}}')
 output = output.replace('Europe Turns', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Europe Turns}}')
-output = output.replace('Europe', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Europe}}')
+output = output.replace('Europe_', r'\addlinespace \multirow{7}{*}{\rotatebox[origin=c]{90}{Europe}}')
 
 with open("paper/table/turn_opts_ext.tex", 'w') as f:
   f.write(output)
