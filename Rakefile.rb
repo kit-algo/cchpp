@@ -397,6 +397,18 @@ namespace "exp" do
     end
   end
 
+  namespace "alternatives" do
+    directory "#{exp_dir}/alternatives"
+
+    task penalty: ["#{exp_dir}/alternatives"] + graphs.map { |g|  g + 'cch_perm' } do
+      Dir.chdir "code/rust_road_router" do
+        graphs.each do |g|
+          sh "cargo run --release --features cch-disable-par --bin cchpot_penalty_iterative -- #{g} > #{exp_dir}/alternatives/$(date --iso-8601=seconds).json"
+        end
+      end
+    end
+  end
+
   task partitioning: ["#{exp_dir}/partitioning", "code/rust_road_router/lib/InertialFlowCutter/build/console"] + main_graphs do
     main_graphs.each do |graph|
       10.times do
