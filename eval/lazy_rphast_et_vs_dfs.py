@@ -31,7 +31,7 @@ queries = pd.DataFrame.from_records([{
 queries['single_query_time_mus'] = queries['passed_time_mus'] / (2 ** queries['terminal_rank'])
 queries['terminal_idx'] = (2 ** queries['terminal_rank'])
 queries['passed_time_ms'] = queries['passed_time_mus'] / 1000.0
-queries['Algorithm'] = queries['algo'].map({ 'lazy_rphast_many_to_one': 'DFS', 'lazy_rphast_cch_many_to_one': 'ET' })
+queries['Algorithm'] = queries['algo'].map({ 'lazy_rphast_ch_many_to_one': 'CH DFS', 'lazy_rphast_many_to_one': 'CCH DFS', 'lazy_rphast_cch_many_to_one': 'CCH ET' })
 queries['Ball Size $|B|$'] = queries['ball_size_exp'].map('$2^{{{}}}$'.format)
 
 fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=(11,8))
