@@ -129,7 +129,7 @@ queries.loc[queries['algo'] == 'Virtual Topocore Bidirectional Core Query', 'var
 queries.loc[queries['algo'] == 'Virtual Topocore Bidirectional Core Query', 'perfect_customization'] = True
 
 ordering = pd.merge(cch_ordering.query('hostname == "compute4"'), ord_expander, on=['expanded', 'cut_order']).groupby(['graph', 'variant'])['cch_ordering_running_time_s'].mean()
-cust = customs.query('hostname == "compute4"').groupby(['graph', 'variant'])['combined_cch_edge_count'].mean()
+cust = customs.query('hostname == "compute4"').groupby(['graph', 'variant'])[['combined_cch_edge_count']].mean()
 cust = pd.merge(cust, customs.query('hostname == "compute4"').groupby(['graph', 'variant', 'num_threads'])[['total_basic_customization_running_time_ms', 'total_perfect_customization_running_time_ms']].mean().unstack(), left_index=True, right_index=True)
 cust = pd.concat([cust.reindex(['no turns'], level=1).rename(index={'no turns': 'cch pot'}), cust]).sort_index()
 quer = queries.query('hostname == "compute4"').groupby(['graph', 'variant', 'perfect_customization'])['running_time_ms'].mean().unstack() * 1000
@@ -140,16 +140,18 @@ topo_prepros_table = pd.concat([topo_prepros_table.reindex(['no turns'], level=1
 
 table['total_phase1_s'] = table['cch_ordering_running_time_s'] + (topo_prepros_table / 1000)
 table['combined_cch_edge_count'] /= 1000
-table = table[['combined_cch_edge_count', 'total_phase1_s', 'total_basic_customization_running_time_ms', 'total_perfect_customization_running_time_ms', False, True]] \
+cols = [table.columns[1], table.columns[-1]] + [t for t in table.columns[2:-1]]
+table = table[cols] \
     .loc[['Chicago', 'London', 'Stuttgart', 'Germany', 'Europe Turns', 'Europe']] \
-    .reindex(['no turns', 'naive expanded', 'cut order', 'remove inf', 'directed', 'sep reorder', 'cch pot'], level=1) \
+    .reindex(['no turns', 'cch pot', 'naive expanded', 'cut order', 'remove inf', 'directed', 'sep reorder'], level=1) \
     .rename(index={ 'no turns': 'No turns', 'naive expanded': 'Naive exp.', 'cut order': 'Cut order', 'remove inf': 'Infinity', 'directed': 'Directed', 'sep reorder': 'Reorder', 'cch pot': 'CCH-Pot.' })
 
 lines = add_latex_big_number_spaces(table.to_latex(na_rep='--')).split('\n')
 
 lines = lines[:2] + [
-r' &         &     CCH Edges & Prepro. & \multicolumn{2}{c}{Customization [ms]} & \multicolumn{2}{c}{Query [$\mu$s]} \\ \cmidrule(lr){5-6} \cmidrule(lr){7-8}',
-r' &         & [$\cdot 10^3$] &   [s] & Basic & Perfect &  Basic & Perfect \\',
+r' &         &     CCH Edges & Prepro. & \multicolumn{4}{c}{Customization [ms]} & \multicolumn{2}{c}{Query [$\mu$s]} \\ \cmidrule(lr){5-8} \cmidrule(lr){9-10}',
+r' &         & [$\cdot 10^3$] &           [s] & \multicolumn{2}{c}{Basic} & \multicolumn{2}{c}{Perfect} & Basic & Perfect \\ \cmidrule(lr){5-6} \cmidrule(lr){7-8}',
+r' & Threads &                &               & 1 & 16 & 1 & 16 \\',
 ] + lines[4:]
 output = '\n'.join(lines) + '\n'
 output = output.replace('nan', '--')
