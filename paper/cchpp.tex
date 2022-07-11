@@ -1065,7 +1065,7 @@ In the following we will investigate how CCH perform in these extended problem s
 \centering
 \includegraphics[width=\linewidth]{fig/lazy_rphast_et_vs_dfs.pdf}
 \caption{
-Average running times of elimination tree and DFS-based Lazy RPHAST on CCH while incrementally querying $|S| = 2^{14}$ sources from a ball of varying size $|B|$ on Europe excluding selection times.
+Average running times of Lazy RPHAST on CH and CCH while incrementally querying $|S| = 2^{14}$ sources from a ball of varying size $|B|$ on Europe excluding selection times.
 The upper figure contains the total elapsed running time.
 The lower figure contains the averaged running time per source, i.e. $y/x$ from the upper figure.
 Note the different y-axis scales and units.
@@ -1080,19 +1080,23 @@ Figure~\ref{fig:et_vs_dfs} depicts the average running times of the incrementall
 We also performed the experiment on Germany.
 The results are reported in Figure~\ref{fig:et_vs_dfs_ger} in the appendix and give the same overall picture.
 
-We observe a minor advantage for the elimination tree-based realization due to the more efficient implementation.
-For the DFS-based variant all upward neighbors need to be checked to determine if the distance of a vertex can be computed.
-With the elimination tree variant, it is sufficient to check the parent in the elimination tree.
-However, there is one exception:
+Clearly, Lazy RPHAST on CCH is somewhat slower than on CH.
+This is because even with the perfect customization, CCH have a denser search space than CH.
+On large ball sizes, the slowdown goes up to a factor of 1.5.
+However, on smaller ball sizes the shrinks significantly.
+On the two smallest ball sizes, the elimination tree-based variant even becomes marginally faster than the CH variant.
+On CCH, we observe a minor advantage for the elimination tree-based realization due to the more efficient implementation.
+Recall that for the DFS-based variant all upward neighbors need to be checked to determine if the distance of a vertex can be computed while with the elimination tree variant, it is sufficient to check the parent in the elimination tree.
+However, there is one exception where the elimination tree variant is less efficient:
 When the $B$ is sufficiently large and many sources are queried, the DFS-based variant becomes marginally faster.
 This is because the path to the elimination tree root might contain vertices which are not reachable in the CCH search space because some edges were removed during the perfect customization.
 We confirmed this experimentally by running the algorithms without perfect customization $G^+$.
-There, the DFS traverses the same vertices as the elimination tree-based variant and the effect disappears.
+In this case, the DFS traverses the same vertices as the elimination tree-based variant and the effect disappears.
 Usually however, the amount of unnecessarily vertices visited by the elimination tree variant is very small in comparison to the total work and is thus more than compensated by the more efficient implementation.
 We therefore conclude that the elimination tree-based Lazy RPHAST variant is the better default choice on CCH.
 In terms of absolute numbers, the average time per distance to compute starts in a similar range as standard (C)CH (around 0.1\,ms) queries and quickly becomes faster as more distances are queried.
 When computing more than $2^{10}$ distance to the same target on a small ball $B$, the average time per distance even becomes faster than HL queries (roughly 0.5\,$\mu$s).
-% TODO compare CH vs CCH
+We conclude that applying Lazy RPHAST on CCH allows us to carry over all the results from the previous chapter to a customizable setting at the cost of a minor slowdown when the targets are distributed over large parts of the graph.
 
 \subsection{Point-of-Interest Queries}
 
@@ -1112,16 +1116,17 @@ Here, we focus on evaluating which CCH-based algorithm is most suitable in diffe
 
 We observe that the performance of the baseline, Dijkstra's algorithm strongly depends on the number of POIs.
 This is not surprising.
-Since targets are drawn uniformly at random, more targets correspond to the closest targets being much closer.
+Since targets are drawn uniformly at random, having more targets corresponds to the closest targets being much closer.
 With $2^{11}$ or more targets, Dijkstra's algorithm in fact achieves interactive query times and may present a feasible practical option.
 The selection phase for Dijkstra's algorithm consists of marking the targets in a bitvector so it can be quickly determined at query time if a settled vertex is a target and is thus extremely fast.
 Lazy RPHAST, in contrast, does not have a selection phase and simply computes distances to all targets without any stopping criterion.
 Thus, it is very fast for small target sets.
-BCCH has the fastest queries (well below 100\,$\mu$s) across all target set size and query times also profit from larger target sets.
+BCCH has the fastest queries (well below 100\,$\mu$s) across all target set sizes.
+Further, query times profit from larger target sets.
 However, the selection phase is quite slow and goes into the minutes for large target sets.
 Thus, the usefulness of BCCH depends on the scenario.
 In an offline scenario where targets are known in advance, it is the best choice.
-In an online scenario where the targets are part of the query (for example, a user types ``restaurants'' in the search field of his maps application), BCCH is not feasible.
+In an online scenario where the targets are part of the query (for example, a user types ``Burger restaurants'' in the search field of his maps application), BCCH is not feasible.
 Finally, the separator based algorithm presents a very robust trade-off.
 Selection times (consisting of sorting the targets by CCH rank) are barely slower than the selection for Dijkstra's algorithm.
 Query times are consistently below 1\,ms which is more than sufficient for typical maps applications.
@@ -1363,7 +1368,7 @@ The experiment was conducted on our main benchmark machine for Chapter~\ref{chap
 \centering
 \includegraphics[width=\linewidth]{fig/lazy_rphast_et_vs_dfs_ger.pdf}
 \caption{
-Average running times of elimination tree and DFS-based Lazy RPHAST on CCH while incrementally querying $|S| = 2^{14}$ sources from a ball of varying size $|B|$ on Germany excluding selection times.
+Average running times of Lazy RPHAST on CH and CCH while incrementally querying $|S| = 2^{14}$ sources from a ball of varying size $|B|$ on Germany excluding selection times.
 The experiment was conducted on our main benchmark machine for Chapter~\ref{chap:cch} compute11.
 The upper figure contains the total elapsed running time.
 The lower figure contains the averaged running time per source, i.e. $y/x$ from the upper figure.
