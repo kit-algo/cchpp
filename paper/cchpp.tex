@@ -111,76 +111,55 @@ A path $P$ from a point along an edge $e_0$ to a point along an edge $e_k$ is a 
 
 In the following, we discuss both common ways to represent turn costs and restrictions. After that, we describe Dijkstra's algorithm and CH, both on standard graphs (simplified or edge-based graphs) and on compact graphs. We also discuss CCH on the simplified model.
 
-\subsection{Turn Representation}
+% \subsection{Dijkstra's Algorithm}
 
-The \emph{simplified model} ignores turn costs and restrictions; see \cref{fig:turn-representation} (left). To actually incorporate them, there are two common ways. We explain each in turn.
+% \emph{Dijkstra's algorithm}~\cite{Dijkstra59} computes the shortest-path distances from a source vertex~$s$ to all other vertices. For each vertex~$v$, it maintains a \emph{distance label}~$d(v)$, which represents the cost of the shortest path from $s$ to $v$ seen so far. Moreover, it maintains an addressable priority queue~$Q$~\cite{SandersMDD19} of vertices, using their distance labels as keys. Initially, $d(s) = 0$ for the source~$s$, $d(v) = \infty$ for each vertex~$v \ne s$, and $Q = \{s\}$.
 
-\begin{figure}[tb]
-  \hfill
-  \input{Graphics/SimplifiedModel}\hfill
-  \input{Graphics/EdgeBasedModel}\hfill
-  \input{Graphics/CompactModel}\hfill\hspace{0pt}
-  \caption{Turn representations (from left): simplified model, edge-based model, compact model.}
-  \label{fig:turn-representation}
-\end{figure}
+% The algorithm repeatedly extracts a vertex~$v$ with minimum distance label from the queue and \emph{settles} it by \emph{relaxing} its outgoing edges~$(v, w)$. To relax an edge~$e = (v, w)$, the path from $s$ to $w$ via $v$ is compared with the shortest path from $s$ to $w$ found so far. More precisely, if $d(v) + \ell(e) < d(w)$, the algorithm sets $d(w) = d(v) + \ell(e)$ and inserts $w$ into the queue. It stops when the queue becomes empty. Note that Dijkstra's algorithm has the label-setting property, i.e., each vertex is settled at most once. Therefore, when computing a point-to-point shortest path from a source~$s$ to a target~$t$, we can stop when $t$ is settled.
 
-\subparagraph*{Edge-based Model}
+% \subparagraph*{On the Compact Model}
 
-The \emph{edge-based model}~\cite{Caldwell61, Winter02} expands the network so that road segments become vertices and allowed turns become edges; see \cref{fig:turn-representation} (middle) for an example. More precisely, the edge-based graph~$G_e = (V_e, E_e)$ is obtained from $G$ as follows. The vertices of $G_e$ are the edges of $G$, i.e, $V_e = E$. The edges of $G_e$ are the allowed turns of $G$, i.e., $E_e = \{(e, f): e, f \in E, r(e, f) = 0\}$. The cost of an edge~$(e, f) \in E_e$ is defined as $\ell_e(e, f) = c(e, f) + \ell(f)$. The main advantage of the edge-based model is that most route planning algorithms can be used as is on it, without further modifications.
+% For correctness, we must work on entry points instead of vertices. That is, we maintain a distance label~$d(v|i)$ for each entry point~$v|i$ and a queue~$Q$ of unsettled entry points. Initially, $d(s|i) = 0$ for the entry point~$s|i$ corresponding to the head of the source edge, $d(v|j) = \infty$ for all other entry points~$v|j$, and $Q = \{s|i\}$. To settle an entry point~$v|i$, we set $d(w|k) = \min\{d(w|k), d(v|i) + T_v(i, j) + \ell(e)\}$ for each outgoing edge~$e = (v|j, w|k)$. Each entry point is settled at most once, however, each vertex can be visited multiple times. Note that Dijkstra's algorithm on the compact model essentially simulates the execution on the edge-based model.
 
-\subparagraph*{Compact Model}
+% \subsection{Contraction Hierarchies}
 
-The \emph{compact model}~\cite{GeisbergerV11, DellingGPW17} keeps intersections as vertices, but associates a $p \times q$ \emph{turn table}~$T_v$ with each vertex~$v$, where $p$ and $q$ are the numbers of incoming and outgoing edges, respectively. The entry~$T_v(i, j)$ represents the cost of the turn from the $i$-th incoming edge~$e$ to the $j$-th outgoing edge~$f$, i.e., $T_v(i, j) = c(e, f)$. For each edge~$(v, w)$, its tail corresponds to an \emph{exit point} at $v$ and its head corresponds to an \emph{entry point} at $w$. Note that the entry points in the compact model translate directly to the vertices in the edge-based model; see \cref{fig:turn-representation} (right) for an example. We denote by $v|i$ the $i$-th exit (or entry) point at $v$ and by $(v|i, w|j)$ the edge whose tail corresponds to the $i$-th exit point at $v$ and whose head corresponds to the $j$-th entry point at $w$. The main advantage of the compact model is its low space overhead since turn tables can be shared among vertices (the number of distinct turn tables for continental instances such as the road network of Western Europe used in our experiments is in the thousands rather than millions~\cite{DellingGPW17}).
+% \emph{Contraction hierarchies} (CH)~\cite{GeisbergerSSV12} is a two-phase speedup technique to accelerate point-to-point shortest-path computations, which exploits the inherent hierarchy of road networks. To differentiate it from customizable CH, we sometimes call it \emph{weighted} or \emph{standard} CH. The preprocessing phase heuristically orders the vertices by importance, and \emph{contracts} them from least to most important. Intuitively, vertices that hit many shortest paths are considered more important, such as vertices on highways. To contract a vertex~$v$, it is temporarily removed from the graph, and \emph{shortcut} edges are added between its neighbors to preserve distances in the remaining graph (without $v$). Note that a shortcut is only needed if it represents the only shortest path between its endpoints, which can be checked by running a \emph{witness search} (local Dijkstra) between its endpoints.
 
-\subsection{Dijkstra's Algorithm}
+% The query phase performs a bidirectional Dijkstra on the augmented graph that only relaxes edges leading to vertices of higher \emph{ranks} (importance). The stall-on-demand~\cite{GeisbergerSSV12} optimization prunes the search at any vertex~$v$ with a suboptimal distance label, which can be checked by looking at upward edges coming into $v$.
 
-\emph{Dijkstra's algorithm}~\cite{Dijkstra59} computes the shortest-path distances from a source vertex~$s$ to all other vertices. For each vertex~$v$, it maintains a \emph{distance label}~$d(v)$, which represents the cost of the shortest path from $s$ to $v$ seen so far. Moreover, it maintains an addressable priority queue~$Q$~\cite{SandersMDD19} of vertices, using their distance labels as keys. Initially, $d(s) = 0$ for the source~$s$, $d(v) = \infty$ for each vertex~$v \ne s$, and $Q = \{s\}$.
+% \subparagraph*{On the Compact Model}
 
-The algorithm repeatedly extracts a vertex~$v$ with minimum distance label from the queue and \emph{settles} it by \emph{relaxing} its outgoing edges~$(v, w)$. To relax an edge~$e = (v, w)$, the path from $s$ to $w$ via $v$ is compared with the shortest path from $s$ to $w$ found so far. More precisely, if $d(v) + \ell(e) < d(w)$, the algorithm sets $d(w) = d(v) + \ell(e)$ and inserts $w$ into the queue. It stops when the queue becomes empty. Note that Dijkstra's algorithm has the label-setting property, i.e., each vertex is settled at most once. Therefore, when computing a point-to-point shortest path from a source~$s$ to a target~$t$, we can stop when $t$ is settled.
+% Recall that we must maintain and compute distance labels for entry points (rather than vertices) in the compact model. Therefore, when contracting a vertex~$v$, we need to preserve the distances between all entry points in the remaining graph (without~$v$). In general, we cannot avoid self-loops and parallel edges. See \cref{fig:contract-on-compact-model} for an example. Contracting vertex~$v'$ creates a self-loop at vertex~$v$, because the through movement from $v$'s left entry point to its right exit point is costlier than the path via $v'$. Analogously, contracting $v$ results in two parallel edges between vertices $u$ and $w$. When entering $u$ from the west and leaving $w$ to the east, the shortest path is via $v$. In contrast, when entering $u$ from the north and leaving $w$ to the north, it is better to traverse the edge between $u$ and $w$.
 
-\subparagraph*{On the Compact Model}
+% Self-loops make the computation of shortcuts more complicated. Each shortcut is no longer a concatenation of exactly two edges, but can also include one or more self-loops at the middle vertex. For example, in \cref{fig:contract-on-compact-model}, the shortcut between $u$ and $w$ includes the self-loop at $v$. Therefore, Geisberger and Vetter~\cite{GeisbergerV11} use the witness search not only to decide whether a shortcut is necessary but also to compute the cost of the shortcut.
 
-For correctness, we must work on entry points instead of vertices. That is, we maintain a distance label~$d(v|i)$ for each entry point~$v|i$ and a queue~$Q$ of unsettled entry points. Initially, $d(s|i) = 0$ for the entry point~$s|i$ corresponding to the head of the source edge, $d(v|j) = \infty$ for all other entry points~$v|j$, and $Q = \{s|i\}$. To settle an entry point~$v|i$, we set $d(w|k) = \min\{d(w|k), d(v|i) + T_v(i, j) + \ell(e)\}$ for each outgoing edge~$e = (v|j, w|k)$. Each entry point is settled at most once, however, each vertex can be visited multiple times. Note that Dijkstra's algorithm on the compact model essentially simulates the execution on the edge-based model.
+% More precisely, to contract a vertex~$v$, they run a witness search for each exit point~$u|i$ such that there is at least one incoming edge~$(u|i, v)$. Initially, they set $d(v'|j) = \ell(e)$ for each edge~$e = (u|i, v'|j)$. Moreover, each entry point~$v'|j$ is inserted into the queue. The witness search stops when each entry point~$w|l$ such that there is at least one edge~$(v, w|l)$ has been settled. A shortcut~$s = (u|i, w|l)$ is only added if it is built from an edge~$(u|i, v)$, zero or more self-loops at $v$, and an edge~$(v, w|l)$. The shortcut has cost~$\ell(s) = d(w|l)$.
 
-\subsection{Contraction Hierarchies}
+% The query phase runs a bidirectional version of the turn-aware Dijkstra described above, but does not relax edges leading to lower-ranked vertices. Note that the stall-on-demand optimization can also be applied in the compact model~\cite{GeisbergerV11}.
 
-\emph{Contraction hierarchies} (CH)~\cite{GeisbergerSSV12} is a two-phase speedup technique to accelerate point-to-point shortest-path computations, which exploits the inherent hierarchy of road networks. To differentiate it from customizable CH, we sometimes call it \emph{weighted} or \emph{standard} CH. The preprocessing phase heuristically orders the vertices by importance, and \emph{contracts} them from least to most important. Intuitively, vertices that hit many shortest paths are considered more important, such as vertices on highways. To contract a vertex~$v$, it is temporarily removed from the graph, and \emph{shortcut} edges are added between its neighbors to preserve distances in the remaining graph (without $v$). Note that a shortcut is only needed if it represents the only shortest path between its endpoints, which can be checked by running a \emph{witness search} (local Dijkstra) between its endpoints.
+% \begin{figure}[tb]
+%   \input{Graphics/ContractOnCompactModel1}\hfill
+%   \input{Graphics/ContractOnCompactModel2}\hfill
+%   \input{Graphics/ContractOnCompactModel3}
+%   \caption{Vertex contraction on the compact model. Original edges are shown in black, turn edges are shown in green, and shortcut edges are shown in blue. Each original edge and each right-, left- and U-turn movement has cost~1. Each through movement has cost 10. Left: A subgraph before contraction. Middle: Contracting vertex~$v'$ creates a self-loop at $v$ (cost~3). Right: Contracting $v$ creates a shortcut edge between $u$ and $w$ (cost~7), resulting in two parallel edges between them.}
+%   \label{fig:contract-on-compact-model}
+% \end{figure}
 
-The query phase performs a bidirectional Dijkstra on the augmented graph that only relaxes edges leading to vertices of higher \emph{ranks} (importance). The stall-on-demand~\cite{GeisbergerSSV12} optimization prunes the search at any vertex~$v$ with a suboptimal distance label, which can be checked by looking at upward edges coming into $v$.
+% \subsection{Customizable Contraction Hierarchies}
 
-\subparagraph*{On the Compact Model}
+% \emph{Customizable contraction hierarchies} (CCH)~\cite{DibbeltSW16} are a three-phase technique, splitting CH preprocessing into a relatively slow metric-independent phase and a much faster customization phase.
+% The metric-independent phase computes a \emph{separator decomposition}~\cite{BauerCRW16} of the unweighted graph, determines an associated \emph{nested dissection order}~\cite{George73} on the vertices, and contracts them in this order without running witness searches (which depend on the metric).
+% Therefore, it adds every potential shortcut.
+% The customization phase computes the costs of the edges in the hierarchy by processing them in bottom-up fashion.
+% To process an edge~$(u, w)$, it enumerates all triangles~$\{v, u, w\}$ where $v$ has lower rank than $u$ and $w$, and checks if the path $\langle u, v, w \rangle$ improves the cost of $(u, w)$. Alternatively, Buchhold et al.~\cite{BuchholdSW19} enumerate all triangles~$\{u, w, v'\}$ where $v'$ has higher rank than $u$ and $w$, and check if the path $\langle v', u, w \rangle$ improves the cost of $(v', w)$, accelerating customization by a factor of 2.
 
-Recall that we must maintain and compute distance labels for entry points (rather than vertices) in the compact model. Therefore, when contracting a vertex~$v$, we need to preserve the distances between all entry points in the remaining graph (without~$v$). In general, we cannot avoid self-loops and parallel edges. See \cref{fig:contract-on-compact-model} for an example. Contracting vertex~$v'$ creates a self-loop at vertex~$v$, because the through movement from $v$'s left entry point to its right exit point is costlier than the path via $v'$. Analogously, contracting $v$ results in two parallel edges between vertices $u$ and $w$. When entering $u$ from the west and leaving $w$ to the east, the shortest path is via $v$. In contrast, when entering $u$ from the north and leaving $w$ to the north, it is better to traverse the edge between $u$ and $w$.
-
-Self-loops make the computation of shortcuts more complicated. Each shortcut is no longer a concatenation of exactly two edges, but can also include one or more self-loops at the middle vertex. For example, in \cref{fig:contract-on-compact-model}, the shortcut between $u$ and $w$ includes the self-loop at $v$. Therefore, Geisberger and Vetter~\cite{GeisbergerV11} use the witness search not only to decide whether a shortcut is necessary but also to compute the cost of the shortcut.
-
-More precisely, to contract a vertex~$v$, they run a witness search for each exit point~$u|i$ such that there is at least one incoming edge~$(u|i, v)$. Initially, they set $d(v'|j) = \ell(e)$ for each edge~$e = (u|i, v'|j)$. Moreover, each entry point~$v'|j$ is inserted into the queue. The witness search stops when each entry point~$w|l$ such that there is at least one edge~$(v, w|l)$ has been settled. A shortcut~$s = (u|i, w|l)$ is only added if it is built from an edge~$(u|i, v)$, zero or more self-loops at $v$, and an edge~$(v, w|l)$. The shortcut has cost~$\ell(s) = d(w|l)$.
-
-The query phase runs a bidirectional version of the turn-aware Dijkstra described above, but does not relax edges leading to lower-ranked vertices. Note that the stall-on-demand optimization can also be applied in the compact model~\cite{GeisbergerV11}.
-
-\begin{figure}[tb]
-  \input{Graphics/ContractOnCompactModel1}\hfill
-  \input{Graphics/ContractOnCompactModel2}\hfill
-  \input{Graphics/ContractOnCompactModel3}
-  \caption{Vertex contraction on the compact model. Original edges are shown in black, turn edges are shown in green, and shortcut edges are shown in blue. Each original edge and each right-, left- and U-turn movement has cost~1. Each through movement has cost 10. Left: A subgraph before contraction. Middle: Contracting vertex~$v'$ creates a self-loop at $v$ (cost~3). Right: Contracting $v$ creates a shortcut edge between $u$ and $w$ (cost~7), resulting in two parallel edges between them.}
-  \label{fig:contract-on-compact-model}
-\end{figure}
-
-\subsection{Customizable Contraction Hierarchies}
-
-\emph{Customizable contraction hierarchies} (CCH)~\cite{DibbeltSW16} are a three-phase technique, splitting CH preprocessing into a relatively slow metric-independent phase and a much faster customization phase.
-The metric-independent phase computes a \emph{separator decomposition}~\cite{BauerCRW16} of the unweighted graph, determines an associated \emph{nested dissection order}~\cite{George73} on the vertices, and contracts them in this order without running witness searches (which depend on the metric).
-Therefore, it adds every potential shortcut.
-The customization phase computes the costs of the edges in the hierarchy by processing them in bottom-up fashion.
-To process an edge~$(u, w)$, it enumerates all triangles~$\{v, u, w\}$ where $v$ has lower rank than $u$ and $w$, and checks if the path $\langle u, v, w \rangle$ improves the cost of $(u, w)$. Alternatively, Buchhold et al.~\cite{BuchholdSW19} enumerate all triangles~$\{u, w, v'\}$ where $v'$ has higher rank than $u$ and $w$, and check if the path $\langle v', u, w \rangle$ improves the cost of $(v', w)$, accelerating customization by a factor of 2.
-
-There are two known query algorithms.
-First, one can run a standard CH search without modification.
-In addition, Dibbelt et al.~\cite{DibbeltSW16} describe a query algorithm based on the \emph{elimination tree} of the augmented graph.
-The parent of a vertex in the elimination tree is its lowest-ranked higher neighbor in the augmented graph.
-Bauer et al.~\cite{BauerCRW16} prove that the ancestors of a vertex~$v$ in the elimination tree are exactly the set of vertices in the CH search space of $v$.
-Hence, the elimination tree query algorithm explores the search space by traversing a path in the elimination tree, thereby avoiding a priority queue completely.
-Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimination tree search, which achieve significant speedups for short- and mid-range queries.
+% There are two known query algorithms.
+% First, one can run a standard CH search without modification.
+% In addition, Dibbelt et al.~\cite{DibbeltSW16} describe a query algorithm based on the \emph{elimination tree} of the augmented graph.
+% The parent of a vertex in the elimination tree is its lowest-ranked higher neighbor in the augmented graph.
+% Bauer et al.~\cite{BauerCRW16} prove that the ancestors of a vertex~$v$ in the elimination tree are exactly the set of vertices in the CH search space of $v$.
+% Hence, the elimination tree query algorithm explores the search space by traversing a path in the elimination tree, thereby avoiding a priority queue completely.
+% Buchhold et al.~\cite{BuchholdSW19} propose further optimizations for the elimination tree search, which achieve significant speedups for short- and mid-range queries.
 
 \section{Algorithms}
 % TODO metric
@@ -707,8 +686,40 @@ However, their approach uses a simpler penalization schema.
 We also implement this variant with CH-Potentials but stick to the penalization schema from Kobitzsch~\cite{kobitzsch2015alternative} and denote this approach as \emph{penalty routes}.
 This leads to some qualitative improvements compared to the results reported in~\cite{adgw-arrn-13}.
 
-\subsection{Turns}
-% \subsection{CCH on the Edge-based Model}
+\subsection{Turns Costs and Restrictions}
+
+So far, we have focused on the \emph{simplified model} where turn costs and restrictions; see \cref{fig:turn-representation} (left).
+Since turn cost can be critical for realistic routing, we now show how to extend CCH to efficiently support turn costs.
+
+\begin{figure}[tb]
+  \hfill
+  \input{Graphics/SimplifiedModel}\hfill
+  \input{Graphics/EdgeBasedModel}\hfill
+  \input{Graphics/CompactModel}\hfill\hspace{0pt}
+  \caption{Turn representations (from left): simplified model, edge-based model, compact model.}
+  \label{fig:turn-representation}
+\end{figure}
+
+\subparagraph{The Edge-based Model}
+
+The \emph{edge-based model}~\cite{Caldwell61, Winter02} expands the network so that road segments become vertices and allowed turns become edges; see \cref{fig:turn-representation} (middle) for an example.
+More precisely, the edge-based graph~$G_e = (V_e, E_e)$ is obtained from $G$ as follows.
+The vertices of $G_e$ are the edges of $G$, i.e, $V_e = E$.
+The edges of $G_e$ are the allowed turns of $G$, i.e., $E_e = \{(e, f): e, f \in E, r(e, f) = 0\}$.
+The cost of an edge~$(e, f) \in E_e$ is defined as $\ell_e(e, f) = c(e, f) + \ell(f)$.
+The main advantage of the edge-based model is that most route planning algorithms can be used as is on it, without further modifications.
+
+\subparagraph{Compact Model}
+
+Turns can alternatively be represented with The \emph{compact model}~\cite{GeisbergerV11, DellingGPW17}.
+In this model intersections are kept as vertices, but a $p \times q$ \emph{turn table}~$T_v$ is associated with each vertex~$v$, where $p$ and $q$ are the numbers of incoming and outgoing edges, respectively; see \cref{fig:turn-representation} (right) for an example.
+The entry~$T_v(i, j)$ represents the cost of the turn from the $i$-th incoming edge~$e$ to the $j$-th outgoing edge~$f$, i.e., $T_v(i, j) = c(e, f)$.
+The main advantage of the compact model is its low space overhead since turn tables can be shared among vertices (the number of distinct turn tables for continental instances such as the road network of Western Europe used in our experiments is in the thousands rather than millions~\cite{DellingGPW17}).
+However, as shown in~\cite{GeisbergerV11, TODO}, (C)CH and the compact model do work well with each other.
+The preprocessing algorithms become rather complex and the achieved performance is not competitive.
+We therefore focus on CCH and the edge-based model in the following.
+
+\subsubsection{CCH on the Edge-Based Model}
 \label{sec:cch-on-edge-based-model}
 
 CCH can be applied to the edge-based model without modifications.
@@ -840,7 +851,7 @@ As shortcuts get the weight of the shortest path through lower ranked vertices, 
 
 It is also possible to sidestep the preprocessing and customization slowdown entirely at the cost of some query performance.
 As shown in the previous chapter, CH-Potentials are very effective when applied to turn costs and restrictions.
-Thus, we can also support turn costs and restrictions in combination with customizability by running bidirectional A* on the expanded graph $G_e$ with CCH-Potentials as the heuristic function.
+Thus, we can also support turn costs and restrictions in combination with customizability by running bidirectional A* on the expanded graph $G_e$ with Lazy RPHAST on the graph without turns as the heuristic function.
 
 \section{Experiments}
 \label{sec:experiments}
@@ -849,6 +860,8 @@ In this section, we present our experimental evaluation.
 Our primary benchmark machine runs openSUSE Leap 15.3 (kernel 5.3.18), and has 64\,GiB of DDR3-1600 RAM and two Intel Xeon E5-2670 CPUs, each of which has eight cores clocked at 2.6\,Ghz and 8~$\times$~64\,KiB of L1, 8~$\times$~256\,KiB of L2, and 20\,MiB of shared L3 cache.
 We use this machine to ensure the comparability of our results to previous works~\cite{DibbeltSW16,BuchholdSW19} which were also evaluated on this computer.
 Additionally, using this machine allows a rough comparison with the results on CRP presented in~\cite{DellingGPW17}.\footnote{
+The authors of~\cite{DellingGPW17} even used our machine to evaluate their turn-aware CH implementation stating that it achieves ``comparable'' performance.
+}\footnote{
 According to the comparison methodology from~\cite{BastDGMPSWW16} (see \url{https://i11www.iti.kit.edu/~pajor/survey/}), the machine used in~\cite{DellingGPW17} (SPA-2) is about 20\% slower than ours (compute11).
 We reran the benchmark for our machine and obtained a score of 38914\,ms which is somewhat slower than the previously reported 36582\,ms.
 This is likely due to the mitigations for side-channel attacks utilizing speculative execution such as Meltdown and Spectre.
@@ -860,7 +873,6 @@ We can only conclude that our machine and SPA-2 yield running times in the same 
 }
 Since the machine is at the time of writing already almost a decade old, we expect our results to be a fairly conservative approximation of the performance which can be expected when deploying these algorithms today.
 The appendix contains additional results on newer machines.
-% compute4
 
 We implemented our algorithms in Rust\footnote{
 The code for this paper and all experiments is available at \url{https://github.com/kit-algo/rust_road_router} % TODO correct link
@@ -1293,8 +1305,8 @@ The experiment was conducted on our main benchmark machine for Chapter~\ref{chap
 \setlength{\tabcolsep}{3pt}
 \centering
 \caption{
-TODO
-% compute 3
+Average query running times and number of queue pushs with different heuristics and optimizations on Germany with $w_q = 1.05 \cdot w_\ell$.
+The experiment was conducted on our main benchmark machine for Chapter~\ref{chap:chpot} compute3.
 }\label{tab:cchpot_opts}
 \input{table/cchpot_opts.tex}
 \end{table}
@@ -1305,8 +1317,8 @@ TODO
 \centering
 \includegraphics[width=\linewidth]{fig/knn_ger.pdf}
 \caption{
-TODO
-% compute11
+Average running times for different nearest-neighbor algorithms on Germany to find the $k=4$ closest targets from a POI set of varying size.
+The experiment was conducted on our main benchmark machine for Chapter~\ref{chap:cch} compute11.
 }\label{fig:knn_ger}
 \end{figure}
 
@@ -1314,8 +1326,10 @@ TODO
 \setlength{\tabcolsep}{3pt}
 \centering
 \caption{
-TODO
-% compute4
+Overview over the performance of various $k$-nearest-neighbor algorithms for different target distributions.
+The experiment was conducted on the same benchmark machine used in ~\cite{TODO}. % compute4
+For each distribution, we report the time to index a set of POIs (selection time), the space consumed by the index (selection space), and the time to find the $k =$ 1, 4, 8 closest POIs (query time).
+For CRP we list unscaled results as reported in \cite{TODO}.
 }\label{tab:knn_overview_table}
 \input{table/repr_knn_overview.tex}
 \end{table}
@@ -1324,8 +1338,8 @@ TODO
 \centering
 \includegraphics[width=\linewidth]{fig/repr_knn_num_pois.pdf}
 \caption{
-TODO
-% compute4
+Average running times for different nearest-neighbor algorithms on Europe to find the $k=4$ closest targets from a POI set of varying size.
+The experiment was conducted on the same benchmark machine used in~\cite{TODO}. % compute4
 }\label{fig:knn_num_pois}
 \end{figure}
 
@@ -1333,8 +1347,8 @@ TODO
 \centering
 \includegraphics[width=\linewidth]{fig/repr_knn_ball_size.pdf}
 \caption{
-TODO
-% compute4
+Average running times for different nearest-neighbor algorithms on Europe to find the $k=4$ closest targets from a POI set with $2^{14}$ targets picked from a ball of varying size.
+The experiment was conducted on the same benchmark machine used in~\cite{TODO}. % compute4
 }\label{fig:knn_ball_size}
 \end{figure}
 
@@ -1356,13 +1370,15 @@ Europe Turns & DIMACS               &      17\,350.0 &      39\,936.5 &     106\
 \end{tabular}
 \end{table}
 
+% TODO what is Europe Turns
+
 \begin{table}
 \centering
 \caption{
 Performance of different CCH variants and optimizations to support turn costs.
 We report the number of directed edges in the augmented graph and running times for each phase.
 Directed hierarchies imply the removal of infinite shortcuts and reordering separator vertices builds on directed hierarchies and the removal of infinite shortcuts and all three variants used a cut order.
-% compute4
+The experiment was conducted on the same benchmark machine used in~\cite{TODO}. % compute4
 }\label{tab:turn_opts_ext}
 \input{table/turn_opts_ext.tex}
 \end{table}
