@@ -141,7 +141,7 @@ table['total_phase1_s'] = table['cch_ordering_running_time_s'] + (topo_prepros_t
 table['combined_cch_edge_count'] /= 1000
 table = table[['combined_cch_edge_count', 'total_phase1_s', 'total_basic_customization_running_time_ms', 'total_perfect_customization_running_time_ms', False, True]] \
     .loc[['Stuttgart', 'Germany', 'Europe']] \
-    .reindex(['no turns', 'cch pot', 'naive expanded', 'cut order', 'remove inf', 'directed', 'sep reorder', 'cch pot'], level=1) \
+    .reindex(['no turns', 'cch pot', 'naive expanded', 'cut order', 'remove inf', 'directed', 'sep reorder'], level=1) \
     .rename(index={ 'no turns': 'No turns', 'naive expanded': 'Naive exp.', 'cut order': 'Cut order', 'remove inf': 'Infinity', 'directed': 'Directed', 'sep reorder': 'Reorder', 'cch pot': 'CCH-Pot.' })
 
 lines = add_latex_big_number_spaces(table.to_latex(na_rep='--')).split('\n')
