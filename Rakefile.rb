@@ -18,6 +18,7 @@ file "paper/cchpp.pdf" => [
   "paper/fig/repr_knn_num_pois.pdf",
   "paper/fig/lazy_rphast_et_vs_dfs_ger.pdf",
   "paper/fig/knn_ger.pdf",
+  "paper/table/turn_opts_ext.tex",
 ] do
   Dir.chdir "paper" do
     sh "latexmk -pdf cchpp.tex"
@@ -101,6 +102,15 @@ namespace "table" do
     "#{exp_dir}/turns/queries/*.json",
   ] + ["eval/turn_opts.py", "paper/table"] do
     sh "eval/turn_opts.py"
+  end
+
+  file "paper/table/turn_opts_ext.tex" => FileList[
+    "#{exp_dir}/turns/partitioning/*.out",
+    "#{exp_dir}/turns/preprocessing/*.json",
+    "#{exp_dir}/turns/customization/*.json",
+    "#{exp_dir}/turns/queries/*.json",
+  ] + ["eval/turn_opts_ext.py", "paper/table"] do
+    sh "eval/turn_opts_ext.py"
   end
 
   file "paper/table/repr_knn_overview.tex" => FileList[
