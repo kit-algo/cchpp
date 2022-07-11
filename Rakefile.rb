@@ -208,8 +208,8 @@ namespace "prep" do
     end
 
     directory graph + "travel_time_ch"
-    file graph + "travel_time_ch" => ["code/compute_ch/build/compute_ch", graph + 'lower_bound'] do
-      sh("code/compute_ch/build/compute_ch #{graph}/first_out #{graph}/head #{graph}/lower_bound " +
+    file graph + "travel_time_ch" => ["code/compute_ch/build/compute_ch"] do
+      sh("code/compute_ch/build/compute_ch #{graph}/first_out #{graph}/head #{graph}/travel_time " +
           "#{graph}/travel_time_ch/order " +
           "#{graph}/travel_time_ch/forward_first_out #{graph}/travel_time_ch/forward_head #{graph}/travel_time_ch/forward_weight " +
           "#{graph}/travel_time_ch/backward_first_out #{graph}/travel_time_ch/backward_head #{graph}/travel_time_ch/backward_weight")
