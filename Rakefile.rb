@@ -73,6 +73,7 @@ namespace "table" do
 
   file "paper/table/preprocessing.tex" => FileList[
     "#{exp_dir}/preprocessing/*.json",
+    "#{exp_dir}/turns/preprocessing/*.json",
     "#{exp_dir}/partitioning/*.out",
   ] + ["eval/preprocessing.py", "paper/table"] do
     sh "eval/preprocessing.py"
