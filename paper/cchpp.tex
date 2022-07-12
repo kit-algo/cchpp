@@ -860,8 +860,6 @@ In this section, we present our experimental evaluation.
 Our primary benchmark machine runs openSUSE Leap 15.3 (kernel 5.3.18), and has 64\,GiB of DDR3-1600 RAM and two Intel Xeon E5-2670 CPUs, each of which has eight cores clocked at 2.6\,Ghz and 8~$\times$~64\,KiB of L1, 8~$\times$~256\,KiB of L2, and 20\,MiB of shared L3 cache.
 We use this machine to ensure the comparability of our results to previous works~\cite{DibbeltSW16,BuchholdSW19} which were also evaluated on this computer.
 Additionally, using this machine allows a rough comparison with the results on CRP presented in~\cite{DellingGPW17}.\footnote{
-The authors of~\cite{DellingGPW17} even used our machine to evaluate their turn-aware CH implementation stating that it achieves ``comparable'' performance.
-}\footnote{
 According to the comparison methodology from~\cite{BastDGMPSWW16} (see \url{https://i11www.iti.kit.edu/~pajor/survey/}), the machine used in~\cite{DellingGPW17} (SPA-2) is about 20\% slower than ours (compute11).
 We reran the benchmark for our machine and obtained a score of 38914\,ms which is somewhat slower than the previously reported 36582\,ms.
 This is likely due to the mitigations for side-channel attacks utilizing speculative execution such as Meltdown and Spectre.
@@ -869,7 +867,8 @@ Compared to this score, SPA-2 would only be about 12\% slower than our our machi
 Generally, these scaling factors have to be interpreted very carefully.
 They are obtained from one-to-all Dijkstra searches on continental-sized road networks.
 This kind of benchmark heavily emphasizes memory bandwidth while neglecting other critical factors such as CPU frequency and cache size and speed.
-We can only conclude that our machine and SPA-2 yield running times in the same order of magnitude and that our machine is probably in most cases slightly faster.
+Also note that the authors of~\cite{DellingGPW17} even used our machine to evaluate their turn-aware CH implementation stating that it achieves ``comparable'' performance.
+We conclude that our machine and SPA-2 yield running times in the same order of magnitude and that our machine is probably in most cases slightly faster.
 }
 Since the machine is at the time of writing already almost a decade old, we expect our results to be a fairly conservative approximation of the performance which can be expected when deploying these algorithms today.
 The appendix contains additional results on newer machines.
@@ -938,10 +937,10 @@ We utilize parallelization for all phases except the queries.
 \centering
 \caption{
 Running time in seconds of the metric-independent preprocessing algorithms.
-Orders were computed with IFC.
+Our contraction orders were computed with IFC.
 For contraction, we compare our own chordal completion algorithm against the contraction graph approach and the naive baseline as reported in~\cite{DibbeltSW16}.
 Our results and the numbers from~\cite{DibbeltSW16} were obtained on the same machine.
-% TODO order
+The total running time additionally includes reconstruction of the elimination tree and separator decomposition, modifying the order into an DFS post order and all other setup operations.
 }\label{tab:preprocessing}
 \input{table/preprocessing.tex}
 \end{table}
@@ -955,11 +954,14 @@ Parallelization approaches for CH preprocessing have been described in the conte
 However, these approaches do not scale very well in the classical setting.
 Further, to the best of our knowledge, there is neither a publication on parallelized CH preprocessing in the time-independent case nor any open source implementation.
 }
-For contraction algorithms, we only have running times of competing algorithms on Europe.
+For contraction algorithms, we only have running times of competing algorithms on Europe\footnote{
+Note that the orders used in~\cite{DibbeltSW16} were obtained with KaHiP which finds slightly worse orders than IFC.
+However, according to~\cite{GottesburenHUW19}, the advantage for our algorithms from this should be at most 10\%.
+}.
 Still, the speed-ups are so significant that the we can safely conclude that the chordal completion algorithm is the best approach for the contraction phase.
 Chordal completion is two orders of magnitude faster than the naive baseline, one order of magnitude faster than the engineered contraction graph approach, and also much simpler to implement.\footnote{See \url{https://github.com/RoutingKit/RoutingKit/pull/75/commits/16de474b2c3} where we replace the contraction graph approach in RoutingKit with the chordal completion algorithm.}
 On Stuttgart, the running time is in the single digit milliseconds.
-In practice, the running time of the chordal completion is so fast that it disappears behind I/O, allocation of memory for the graph data and other algorithmically uninteresting parts of the implementation.
+In practice, the running time of the chordal completion is so fast that it disappears behind memory allocation for the graph data, reconstruction of the separator decomposition and other setup/management operations.
 
 \begin{table}
 \centering
@@ -967,7 +969,8 @@ In practice, the running time of the chordal completion is so fast that it disap
 \caption{
 Running times by number of threads of different steps of the customization phase on Stuttgart and Europe in comparison with the baseline results reported in~\cite{DibbeltSW16} and the improvements proposed in~\cite{BuchholdSW19}.
 Our results and the numbers from~\cite{DibbeltSW16,BuchholdSW19} were obtained on the same machine.
-% TODO order
+Note that the orders used in~\cite{DibbeltSW16,BuchholdSW19} were obtained with KaHiP and InertialFlow, respectively which find slightly worse orders than IFC.
+However, according to~\cite{GottesburenHUW19}, the advantage for our algorithms from this should be at most 10\%.
 }\label{tab:customization}
 \input{table/customization.tex}
 \end{table}
@@ -986,7 +989,7 @@ In contrast, on Stuttgart, our best achieved speedup is 4.2 with 8 threads.
 Adding more threads starts to gradually degrade the performance.
 In terms of absolute numbers our approach enables customization of continental-sized instances in about 10\,s sequentially and a little more than a second fully parallelized.
 This finally brings CCH customization running times in a similar range than CRP customization running time (10.55\,s sequentially, 1.05\,s with 12 cores).
-% When only applying the basic customization, CRP customization times can even be undercut.
+When only applying the basic customization, CRP customization times can even be undercut.
 
 \begin{table}
 \centering
@@ -1067,7 +1070,7 @@ For even faster queries, the perfect customization can be applied.
 Then, the total customization time is marginally slower than CRP but queries are an order of magnitude faster and basically as fast as classical CH queries.
 Nevertheless, CRP still has some advantages over CCH.
 First, the space consumption per customized weight function is smaller for CRP.
-Second, CRP has been extended to more extended problem settings and appeared as more flexible.
+Second, CRP has been extended to more extended problem settings and appears as more flexible.
 In the following we will investigate how CCH perform in these extended problem settings.
 
 \subsection{Lazy RPHAST}
