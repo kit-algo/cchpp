@@ -761,6 +761,15 @@ Infinite shortcuts can be identified by customizing the graph with the weight of
 Afterwards, every bidirected edge that still has weight $\infty$ in both directions is an infinite shortcut and can be removed.
 We identify and remove infinite shortcuts in an additional preprocessing step, after obtaining the elimination tree.
 
+Having removed some edges, we cannot guarantee anymore that the perfect customization will set every edge weight to the shortest distance between its endpoints.
+This is because due to removed edges some triangles necessary to find these shortest distances might be missing.
+Luckily, this does not affect correctness as the basic customization is fully sufficient to answer queries correctly.
+Further, the perfect customization can still be applied without modification.
+It will only potentially miss some edges to remove.
+Therefore, we do not get a minimal augmented graph anymore but only a reduced one.
+As our experiments show, loosing this minimality guarantee has only little impact on the impact on the practical performance.
+Applying the perfect customization still yields worthwhile query speedups.
+
 \subparagraph*{Directed Hierarchies}
 
 In the simplified model, many edges have a corresponding reversed edge.
