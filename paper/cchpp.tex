@@ -634,57 +634,57 @@ This linear sweep makes up the selection phase.
 
 \subsection{Alternatives}
 
-Providing users with multiple alternative good routes to choose from is another relevant feature for practical routing applications.
-The penalty method is an established framework for computing such alternative routes~\cite{bdgs-argrn-11,krs-eepma-13,pz-iarp-13,kobitzsch2015alternative}.
-It computes an alternative graph instead of a set of alternative routes.
-This graph is constructed iteratively.
+Providing users with multiple alternative good routes to choose from is another critical feature for practical routing applications.
+To the best of our knowledge, no alternative route algorithms based on CCH have been proposed so far.
+Some CH-based algorithms exist, but it is not immediately clear if these algorithms could be easily adopted to CCH.
+Therefore, in this section, we propose a simple CCH-based alternative route algorithm based on a variation of the penalty method and CCH-Potentials.
+The penalty method is an established framework for computing alternative routes~\cite{bdgs-argrn-11,krs-eepma-13,pz-iarp-13,kobitzsch2015alternative}.
+It works iteratively.
 In each iteration, a shortest path between $s$ and $t$ is computed.
-This path (or certain parts of it) is then added to the alternative graph depending on certain quality criteria.
-Finally, all edge weights of the path and possibly adjoined edges are penalized.
-This is repeated until the current path is more than $1 + \epsilon$ times longer than the original distance or until certain other stopping criteria are fulfilled.
+This path represents a possible alternative.
+To avoid this path in future iterations, all edge weights of the path and adjoined edges are penalized, i.e.\ the edge weights are increased.
+This is repeated until an obtained path becomes too long with respect to the original edge weights.
+Typically, the found paths are combined into an alternative graph from which alternative routes are extracted in a second step.
+However, for simplicity and inspired by a variation of the penalty method presented in~\cite{adgw-arrn-13}, we choose to instead return some of the obtained paths directly as alternative routes.
+We refer to this approach as \emph{penalty routes}.
+In the following, we briefly discuss the implementation details and penalization configuration of our method.
 
-The running time of the penalty method is usually dominated by shortest path computations.
-The computations are performed on $G_{\ell}$ with a few increased edge weights.
-This setting seems like a natural fit for A* with CH-Potentials.
-While the alternative route schema outlined above is conceptually simple, it leaves open quite a few details which may have a strong impact on performance.
-In this work, we do not develop our own variant of the penalty method.
-Instead we aim to reproduce the configuration used by Kobitzsch in his dissertation~\cite{kobitzsch2015alternative}.
-To the best of our knowledge, this is the latest, most thoroughly engineered and evaluated iteration of the penalty method.
-It also achieves the qualitatively best results.
+% This is repeated until the current path is more than $1 + \epsilon$ times longer than the original distance or until certain other stopping criteria are fulfilled.
+
+We compute shortest paths with CCH-Potentials, i.e.\ we run A* with Lazy RPHAST on CCH as the heuristic.
+The initial weight function without penalization may depend on the application.
+Typically, the weights me be travel times adjusted to the current traffic situation.
+When applying the penalization, we do \emph{not} run the customization.
+We only run A* with the penalized weights but use the regular distances for the potential function.
+
+Having obtained a path for the current iteration, we check which edges were present in any previous path.
+If the combined non-penalized weight of the non-shared edges makes up more than 20\% of the total weight of the path, we report the path as a viable alternative.
+
+Our penalization schema follows the configuration presented by Kobitzsch in his dissertation~\cite{kobitzsch2015alternative}.
+To the best of our knowledge, this is the latest, most thoroughly engineered and evaluated iteration of the penalty method.\footnote{
 Some details remain unclear from the description in~\cite{kobitzsch2015alternative}.
-Luckily, we could obtain the original implementation from the authors to resolve all open questions.
-As we use the same configuration, qualitative results are directly comparable.
-We can focus on comparing running times.
-
-To ease our exposition, we briefly reiterate the details of Kobitzsch's configuration.
-The stretch is limited to $\epsilon = 0.25$, i.e. for any path $P = (u,\dots,v)$ in the alternative graph $w(P) \leq (1+\epsilon) \cdot \dist(u,v)$.
+Luckily, we could obtain the original implementation from the author to resolve all open questions.
+}
+We limit the stretch of alternatives routes, i.e. for any path $P = (s,\dots,t)$ the length $w(P)$ must not exceed $(1+\epsilon) \cdot \dist(u,v)$ with $\epsilon = 0.25$.
 % \todo{Das bedeutet, dass der Alternativgraph z.B. Zyklenfrei sein muss. Sobald es einen Zyklus gibt kann ich $w(P)$ beliebig groß machen.}
-Shortest path edges are penalized multiplicative with a factor of $\psi = 1.1$, i.e. when an edges was on the shortest path in $k$ iterations its weight will be $w_q = w_{\ell}\cdot\psi^k$.
+Shortest path edges are penalized multiplicative with a factor of $\psi = 1.1$, i.e. when an edges was on the shortest path in $k$ iterations its weight will be $w_p = w\cdot\psi^k$ where $w_p$ are the penalized weights.
 We also penalize edges incident to shortest paths with an asymmetric additive rejoin penalty.
 % \todo{incident = nur incomming edges oder auch outgoing? rejoin klingt nur nach incomming, incident klingt nach beiden.}
-An edge $uv$ where $u$ is on a shortest path but $v$ is not will get its weight increased by $\psi_r \cdot \dist_{w_{\ell}}(s,t) \cdot \frac{\dist_{w_q}(s,u)}{\dist_{w_q}(s,t)}$.
-Analogously, an edge $uv$ where $v$ is on a shortest path but $u$ is not will get its weight increased by $\psi_r \cdot \dist_{w_{\ell}}(s,t) \cdot \frac{\dist_{w_q}(v,t)}{\dist_{w_q}(s,t)}$.
+An edge $uv$ where $u$ is on a shortest path but $v$ is not will get its weight increased by $\psi_r \cdot \dist(s,t) \cdot \frac{\dist_p(s,u)}{\dist_p(s,t)}$.
+Analogously, an edge $uv$ where $v$ is on a shortest path but $u$ is not will get its weight increased by $\psi_r \cdot \dist(s,t) \cdot \frac{\dist_p(v,t)}{\dist_p(s,t)}$.
 % \todo{Was ist $w_q$ in diesem Kontext?}
 % \todo{Ich habe nicht verstanden was diese $\psi_r$ Formeln tun.}
 $\psi_r$ is set to 0.01.
-To avoid over-penalization, we count the times a \emph{node} was on a shortest path and do not apply penalties, when this number exceeds $k_{\max} := \lceil\log_{\psi}(1+\epsilon)\rceil + 2$.
-Shortest paths are split into segments not yet contained in the alternative graph.
-A segment is only added if it is long enough (at least $0.05 \cdot \dist_{w_{\ell}}(s,t)$) and does not violate the maximum stretch condition.
+To avoid over-penalization, we count the times a \emph{vertex} was on a shortest path and do not apply penalties when this number exceeds $k_{\max} := \lceil\log_{\psi}(1+\epsilon)\rceil + 2$.
 We terminate the algorithm when any of the following conditions becomes true:
 \begin{itemize}
+  \item The desired number of alternatives has been obtained.
   \item All nodes on the current shortest path have been penalized $k_{\max}$ times.
-  \item 10 ore more segments have been added to the alternative graph.
-  \item The shortest path is longer than $(1+\epsilon) \cdot \dist_{w_{\ell}}(s,t)$ with respect to the original metric.
-  \item The shortest path is longer than $(1+\epsilon) \cdot \psi + 2\psi_r \cdot \dist_{w_{\ell}}(s,t)$ with respect to the penalized metric.
+  \item The shortest path is longer than $(1+\epsilon) \cdot \dist(s,t)$ with respect to the original weight function.
+  \item The shortest path is longer than $(1+\epsilon) \cdot \psi + 2\psi_r \cdot \dist(s,t)$ with respect to the penalized weight function.
 \end{itemize}
-The last two stopping criteria can both be utilized for additional pruning in the A*.
-As a final optimization, we run the forward and backward search in parallel in two threads.
-
-In~\cite{adgw-arrn-13} Abraham et al. describe a variation of the penalty method to directly obtain alternative routes rather than an alternative graph.
-They return the first path which shares less than 80\% with the original path and has stretch less than $1+\epsilon$.
-However, their approach uses a simpler penalization schema.
-We also implement this variant with CH-Potentials but stick to the penalization schema from Kobitzsch~\cite{kobitzsch2015alternative} and denote this approach as \emph{penalty routes}.
-This leads to some qualitative improvements compared to the results reported in~\cite{adgw-arrn-13}.
+The last two stopping criteria can both be utilized for pruning in A*.
+As a final optimization, we run the forward and backward search in parallel.
 
 \subsection{Turns Costs and Restrictions}
 
@@ -1164,19 +1164,29 @@ Thus, the separator-based algorithm would be dominated by Lazy RPHAST for few ta
 \begin{table}
 \centering
 \caption{
-TODO
+Performance of the penalty routes method with CCH-Potentials.
+We report results on each graph for finding up to 4 alternative routes.
+The success rate indicates the share of queries for which the desired number of alternatives could be found.
+The running time states the total running time for the respective number of alternatives.
+Iterations denotes the number shortest path computations on the penalized graph in addition to the initial shortest path search.
+Sharing indicates the amount of distance of the current alternative shared with any previous path including the initial shortest path.
 }\label{tab:alt_stats}
 \input{table/alt_stats.tex}
 \end{table}
 
-Our implementation of the penalty method reproduces the qualitative results reported in~\cite{kobitzsch2015alternative} (for random queries on DIMACS Europe we on average achieve a total distance of 2.93, an average distance of 1.04, 5.57 decision edges and a success rate of 98.7\% with 6.7 iterations).
-The average running times to compute an alternative graph are 1.37\,s on DIMACS Europe and 0.85\,s on OSM Germany.
-These running times are roughly one order of magnitude slower than the results achieved by Kobitzsch.
-The simpler penalty routes approach is much faster and takes only 156\,ms on DIMACS Europe and 66\,ms on OSM Germany.
-This is two orders of magnitude faster than the running times reported in~\cite{adgw-arrn-13} which is not surprising since their implementation uses an unaccelerated Dijkstra.
-Due to the advanced penalization schema, our average qualitative results differ from~\cite{adgw-arrn-13}: the success rate is with 96.8\% slightly higher, the UBS with around 9\% slightly worse, the sharing is with 42\% somewhat higher but the local optimality, which was the weakest point in the original approach, with 21\% significantly better.
-Finding these alternatives takes only 1.44 iterations on average.
-This makes CH-Potential-based penalty routes a simple and feasible practical approach to compute alternative routes.
+Next we evaluate the performance of finding alternative routes with CCH-Potentials and our penalty routes method.
+Table~\ref{tab:alt_stats} depicts the results.
+We observe very good success rates and sharing values.
+On Europe, we can successfully obtain four additional routes where for each route almost half the way is a distinct path.
+In contrast, the CRP-based approach presented in~\cite{DellingGPW17} finds third alternative routes with a success rate of only 40\%.
+Germany exhibits similar results.
+On Stuttgart we achieve slightly worse results.
+This is expected since finding alternative routes becomes harder as routes become shorter~\cite{kobitzsch2015alternative}.
+While our approach is very competitive in terms of quality, it is quite slow.
+Even for the first alternative, running times are only interactive on the Stuttgart instance.
+Luckily, short-range queries make up the bulk of queries to be answered in practical applications~\cite{TODO}.
+Therefore, our approach can be practically feasible in certain cases.
+Alternatively, faster, CH-based approaches~\cite{TODO} could be adapted to CCH.
 
 \subsection{Turn Costs}
 

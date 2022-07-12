@@ -39,7 +39,7 @@ lines = add_latex_big_number_spaces(alt_stats.loc[['Stuttgart', 'Germany', 'Euro
 
 lines = lines[:2] + [
 r' & \# Alt. & Success   & Running   & \# Iterations & Sharing \\',
-r' &         & rate [\%] & time [ms] &               &    [ms] \\',
+r' &         & rate [\%] & time [ms] &               &    [\%] \\',
 ] + lines[4:]
 output = '\n'.join(lines) + '\n'
 output = output.replace('Germany', r'\addlinespace Germany')
