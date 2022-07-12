@@ -10,6 +10,7 @@ file "paper/cchpp.pdf" => [
   "paper/table/queries.tex",
   "paper/fig/lazy_rphast_et_vs_dfs.pdf",
   "paper/fig/knn.pdf",
+  "paper/table/alt_stats.tex",
   "paper/table/turn_opts.tex",
 
   "paper/table/customization_ger.tex",
@@ -117,6 +118,12 @@ namespace "table" do
     "#{exp_dir}/knn/repr/**/*.json",
   ] + ["eval/repr_knn_overview.py", "paper/table"] do
     sh "eval/repr_knn_overview.py"
+  end
+
+  file "paper/table/alt_stats.tex" => FileList[
+    "#{exp_dir}/alternatives/*.json",
+  ] + ["eval/alt.py", "paper/table"] do
+    sh "eval/alt.py"
   end
 end
 

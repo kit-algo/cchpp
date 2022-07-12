@@ -936,7 +936,6 @@ We utilize parallelization for all phases except the queries.
 
 \begin{table}
 \centering
-\setlength{\tabcolsep}{5pt}
 \caption{
 Running time in seconds of the metric-independent preprocessing algorithms.
 Orders were computed with IFC.
@@ -991,7 +990,7 @@ This finally brings CCH customization running times in a similar range than CRP 
 
 \begin{table}
 \centering
-\setlength{\tabcolsep}{5pt}
+\setlength{\tabcolsep}{4pt}
 \caption{
 Search space statistics and running times for elimination tree queries on different graphs and weight functions.
 We evaluate queries on $G^+$ with only the basic customization and on $G^*$ after performing the perfect customization.
@@ -1149,6 +1148,14 @@ Without them, the selection takes 10-20\,ms~\cite{TODO}.
 Thus, the separator-based algorithm would be dominated by Lazy RPHAST for few targets and Dijkstra's algorithm for many targets.
 
 \subsection{Alternative Routes}
+
+\begin{table}
+\centering
+\caption{
+TODO
+}\label{tab:alt_stats}
+\input{table/alt_stats.tex}
+\end{table}
 
 Our implementation of the penalty method reproduces the qualitative results reported in~\cite{kobitzsch2015alternative} (for random queries on DIMACS Europe we on average achieve a total distance of 2.93, an average distance of 1.04, 5.57 decision edges and a success rate of 98.7\% with 6.7 iterations).
 The average running times to compute an alternative graph are 1.37\,s on DIMACS Europe and 0.85\,s on OSM Germany.
